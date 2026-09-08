@@ -1,0 +1,31 @@
+<p>accept-invitation works!</p>
+<div class="auth-container">
+  <div class="auth-card">
+    @if (isLoading()) {
+      <p>Loading invitation...</p>
+    } @else if (errorMessage()) {
+      <div class="error-banner">{{ errorMessage() }}</div>
+      <p class="link-row"><a routerLink="/projects">Go to your projects</a></p>
+    } @else if (accepted()) {
+      <h1>You're in!</h1>
+      <p>Redirecting to your projects...</p>
+    } @else if (preview(); as p) {
+      <h1>You're invited</h1>
+      <p><strong>{{ p.inviterName }}</strong> invited you to join <strong>{{ p.projectName }}</strong>.</p>
+
+      @if (!p.isValid) {
+        <div class="error-banner">This invitation has expired or is no longer valid.</div>
+      } @else if (!authService.isLoggedIn()) {
+        <p class="info-banner">Log in or register with <strong>{{ p.email }}</strong> to accept this invitation.</p>
+        <div class="button-row">
+          <a routerLink="/login" class="btn">Log in</a>
+          <a routerLink="/register" class="btn secondary">Register</a>
+        </div>
+      } @else {
+        <button (click)="onAccept()" [disabled]="isAccepting()">
+          {{ isAccepting() ? 'Joining...' : 'Accept Invitation' }}
+        </button>
+      }
+    }
+  </div>
+</div>

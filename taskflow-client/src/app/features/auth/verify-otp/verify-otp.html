@@ -1,0 +1,31 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <h1>Verify your email</h1>
+    <p class="subtitle">We sent a 6-digit code to {{ model().email }}</p>
+
+    <form (submit)="onSubmit($event)">
+      <div class="field">
+        <label for="code">Verification code</label>
+<input id="code" type="text" [formField]="otpForm.code" />        @if (otpForm.code().touched() && otpForm.code().invalid()) {
+          <span class="error">{{ otpForm.code().errors()[0]?.message }}</span>
+        }
+      </div>
+
+      @if (errorMessage()) {
+        <div class="error-banner">{{ errorMessage() }}</div>
+      }
+      @if (infoMessage()) {
+        <div class="info-banner">{{ infoMessage() }}</div>
+      }
+
+      <button type="submit" [disabled]="isSubmitting()">
+        {{ isSubmitting() ? 'Verifying...' : 'Verify' }}
+      </button>
+    </form>
+
+    <p class="link-row">
+      Didn't get a code?
+      <a (click)="onResend()">{{ isResending() ? 'Sending...' : 'Resend code' }}</a>
+    </p>
+  </div>
+</div>

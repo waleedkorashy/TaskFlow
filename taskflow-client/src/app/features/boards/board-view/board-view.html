@@ -1,0 +1,84 @@
+<div class="page">
+  <header class="topbar">
+    @if (board(); as b) {
+    <a [routerLink]="['/projects', b.projectId]" class="back-link">← Back to Project</a>
+    <div class="title-row">
+      @if (isEditingBoardName()) {
+      <input class="name-input" [value]="editBoardNameValue()"
+        (input)="editBoardNameValue.set($any($event.target).value)" (blur)="saveBoardName()"
+        (keydown.enter)="saveBoardName()" />
+      } @else {
+      <h1 (click)="startEditBoardName()">{{ b.name }}</h1>
+      }
+      <button class="delete-board-btn" (click)="onDeleteBoard()">Delete Board</button>
+    </div>
+    }
+  </header>
+
+  <main>
+    @if (errorMessage()) {
+    <div class="error-banner">{{ errorMessage() }}</div>
+    }
+
+    @if (isLoading()) {
+    <p class="loading">Loading board...</p>
+    } @else {
+    <div class="board-columns">
+      @for (column of columns(); track column.id) {
+      <div class="column">
+        <div class="column-header">
+          @if (editingColumnId() === column.id) {
+          <input class="column-name-input" [value]="editColumnName()"
+            (input)="editColumnName.set($any($event.target).value)" (blur)="saveColumnName(column.id)"
+            (keydown.enter)="saveColumnName(column.id)" />
+          } @else {
+          <h3 (click)="startEditColumn(column)">{{ column.name }}</h3>
+          }
+          <div class="column-header-actions">
+            <span class="task-count">{{ column.tasks.length }}</span>
+            <button class="delete-column-btn" (click)="onDeleteColumn(column.id)">×</button>
+          </div>
+        </div>
+
+        <div class="task-list" cdkDropList [id]="column.id" [cdkDropListData]="column.tasks"
+          [cdkDropListConnectedTo]="getColumnIds()" (cdkDropListDropped)="onTaskDropped($event)">
+          @for (task of column.tasks; track task.id) {
+          <div class="task-card" cdkDrag>
+            <span class="task-title" (click)="onOpenTask(task)">{{ task.title }}</span>
+            <button class="delete-btn" (click)="onDeleteTask(task.id, column.id)">×</button>
+          </div>
+          }
+        </div>
+
+        @if (column.showAddTask) {
+        <form class="add-task-form" (submit)="onAddTask($event, column.id)">
+          <input type="text" placeholder="Task title" [value]="getTaskInputValue(column.id)"
+            (input)="setTaskInputValue(column.id, $any($event.target).value)" />
+          <div class="form-actions">
+            <button type="submit" [disabled]="isAddingTaskFor()[column.id]">Add</button>
+            <button type="button" (click)="toggleAddTask(column.id)">Cancel</button>
+          </div>
+        </form>
+        } @else {
+        <button class="add-task-btn" (click)="toggleAddTask(column.id)">+ Add task</button>
+        }
+      </div>
+      }
+
+      <div class="column add-column">
+        @if (showAddColumn()) {
+        <form (submit)="onAddColumn($event)">
+          <input type="text" placeholder="Column name" [formField]="columnForm.name" />
+          <div class="form-actions">
+            <button type="submit" [disabled]="isAddingColumn()">Add</button>
+            <button type="button" (click)="showAddColumn.set(false)">Cancel</button>
+          </div>
+        </form>
+        } @else {
+        <button class="add-column-btn" (click)="showAddColumn.set(true)">+ Add column</button>
+        }
+      </div>
+    </div>
+    }
+  </main>
+</div>

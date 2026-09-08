@@ -1,0 +1,167 @@
+<div class="page">
+  <header class="topbar">
+    <a (click)="goBackToBoard()" class="back-link">← Back to Board</a>
+  </header>
+
+  <main>
+    @if (errorMessage()) {
+      <div class="error-banner">{{ errorMessage() }}</div>
+    }
+
+    @if (isLoading()) {
+      <p>Loading task...</p>
+    } @else if (task(); as t) {
+      <div class="task-detail-grid">
+        <div class="main-column">
+          <div class="title-block">
+            @if (isEditingTitle()) {
+              <input
+                class="title-input"
+                [value]="editTitleValue()"
+                (input)="editTitleValue.set($any($event.target).value)"
+                (blur)="saveTitle()"
+                (keydown.enter)="saveTitle()"
+              />
+            } @else {
+              <h1 (click)="startEditTitle()">{{ t.title }}</h1>
+            }
+          </div>
+
+          <section>
+            <h3>Description</h3>
+            <textarea
+              rows="4"
+              placeholder="Add a description..."
+              [value]="editDescription()"
+              (input)="editDescription.set($any($event.target).value)"
+              (blur)="saveDetails()"
+            ></textarea>
+          </section>
+
+          <section>
+            <h3>Comments</h3>
+            <div class="comment-list">
+              @for (comment of comments(); track comment.id) {
+                <div class="comment">
+                  @if (editingCommentId() === comment.id) {
+                    <textarea
+                      class="comment-edit-input"
+                      rows="2"
+                      [value]="editCommentText()"
+                      (input)="editCommentText.set($any($event.target).value)"
+                    ></textarea>
+                    <div class="comment-edit-actions">
+                      <button type="button" (click)="saveCommentEdit(comment.id)">Save</button>
+                      <button type="button" (click)="cancelEditComment()">Cancel</button>
+                    </div>
+                  } @else {
+                    <div class="comment-header">
+                      <strong>{{ comment.userName }}</strong>
+                      @if (isOwnComment(comment)) {
+                        <div class="comment-actions">
+                          <button class="icon-btn" (click)="startEditComment(comment)" title="Edit">✎</button>
+                          <button class="icon-btn" (click)="onDeleteComment(comment.id)" title="Delete">×</button>
+                        </div>
+                      }
+                    </div>
+                    <p>{{ comment.content }}</p>
+                  }
+                </div>
+              }
+              @if (comments().length === 0) {
+                <p class="empty-state">No comments yet.</p>
+              }
+            </div>
+
+            <form class="comment-form" (submit)="onPostComment($event)">
+              <input
+                type="text"
+                placeholder="Write a comment..."
+                [value]="newCommentText()"
+                (input)="newCommentText.set($any($event.target).value)"
+              />
+              <button type="submit" [disabled]="isPostingComment()">Post</button>
+            </form>
+          </section>
+        </div>
+
+        <aside class="side-column">
+          <section>
+            <h4>Due date</h4>
+            <input
+              type="date"
+              [value]="editDueDate()"
+              (input)="editDueDate.set($any($event.target).value)"
+              (blur)="saveDetails()"
+            />
+          </section>
+
+          <section>
+            <h4>Assignee</h4>
+            <select
+              [value]="editAssigneeId()"
+              (change)="editAssigneeId.set($any($event.target).value); saveDetails()"
+            >
+              <option value="">Unassigned</option>
+              @for (member of members(); track member.userId) {
+                <option [value]="member.userId">{{ member.fullName }}</option>
+              }
+            </select>
+          </section>
+
+          <section>
+            <h4>Labels</h4>
+            <div class="label-list">
+              @for (label of allLabels(); track label.id) {
+                <div class="label-row">
+                  @if (editingLabelId() === label.id) {
+                    <input
+                      class="label-edit-input"
+                      [value]="editLabelName()"
+                      (input)="editLabelName.set($any($event.target).value)"
+                    />
+                    <input
+                      type="color"
+                      [value]="editLabelColor()"
+                      (input)="editLabelColor.set($any($event.target).value)"
+                    />
+                    <button type="button" class="icon-btn" (click)="saveLabelEdit(label.id)" title="Save">✓</button>
+                    <button type="button" class="icon-btn" (click)="cancelEditLabel()" title="Cancel">×</button>
+                  } @else {
+                    <button
+                      class="label-chip"
+                      [class.attached]="isLabelAttached(label.id)"
+                      [style.background]="isLabelAttached(label.id) ? label.colorHex : 'transparent'"
+                      [style.border-color]="label.colorHex"
+                      [style.color]="isLabelAttached(label.id) ? 'white' : label.colorHex"
+                      (click)="toggleLabel(label)"
+                    >
+                      {{ label.name }}
+                    </button>
+                    <button class="icon-btn" (click)="startEditLabel(label)" title="Rename">✎</button>
+                    <button class="icon-btn" (click)="onDeleteLabel(label.id)" title="Delete">×</button>
+                  }
+                </div>
+              }
+            </div>
+
+            <form class="new-label-form" (submit)="onCreateLabel($event)">
+              <input
+                type="text"
+                placeholder="New label name"
+                [value]="newLabelName()"
+                (input)="newLabelName.set($any($event.target).value)"
+              />
+              <input
+                type="color"
+                [value]="newLabelColor()"
+                (input)="newLabelColor.set($any($event.target).value)"
+              />
+              <button type="submit" [disabled]="isCreatingLabel()">+</button>
+            </form>
+          </section>
+        </aside>
+      </div>
+    }
+  </main>
+</div>

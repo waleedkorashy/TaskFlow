@@ -1,0 +1,112 @@
+<div class="page">
+  <header class="topbar">
+    <a routerLink="/projects" class="back-link">← All Projects</a>
+    <div class="title-row">
+      @if (isEditingName()) {
+      <input class="name-input" [value]="editNameValue()" (input)="editNameValue.set($any($event.target).value)"
+        (blur)="saveName()" (keydown.enter)="saveName()" />
+      } @else if (project(); as p) {
+      <h1 (click)="startEditName()">{{ p.name }}</h1>
+      }
+      <button class="delete-project-btn" (click)="onDeleteProject()">Delete Project</button>
+    </div>
+  </header>
+
+  <main>
+    @if (project(); as p) {
+    @if (p.description) {
+    <p class="description">{{ p.description }}</p>
+    }
+    }
+    <div class="members-section">
+      <div class="section-header">
+        <h2>Members</h2>
+        <button (click)="showMembersPanel.set(!showMembersPanel())">
+          {{ showMembersPanel() ? 'Hide' : 'Manage' }}
+        </button>
+      </div>
+
+      @if (showMembersPanel()) {
+      <div class="members-panel">
+        <div class="member-list">
+          @for (member of members(); track member.userId) {
+          <div class="member-row">
+            <span>{{ member.fullName }} <span class="member-email">({{ member.email }})</span></span>
+            <span class="member-role">{{ member.role }}</span>
+            @if (isOwner() && member.role !== 'Admin') {
+            <button class="remove-btn" (click)="onRemoveMember(member.userId)">Remove</button>
+            }
+          </div>
+          }
+        </div>
+
+        @if (isOwner()) {
+        <form class="invite-form" (submit)="onInvite($event)">
+          <input type="email" placeholder="Invite by email" [value]="inviteEmail()"
+            (input)="inviteEmail.set($any($event.target).value)" />
+          <button type="submit" [disabled]="isInviting()">
+            {{ isInviting() ? 'Sending...' : 'Invite' }}
+          </button>
+        </form>
+
+        @if (inviteMessage()) {
+        <p class="invite-message">{{ inviteMessage() }}</p>
+        }
+
+        @if (pendingInvitations().length > 0) {
+        <h4>Pending invitations</h4>
+        <div class="pending-list">
+          @for (inv of pendingInvitations(); track inv.id) {
+          <div class="pending-row">
+            <span>{{ inv.email }}</span>
+            <button class="remove-btn" (click)="onRevokeInvitation(inv.id)">Revoke</button>
+          </div>
+          }
+        </div>
+        }
+        } @else {
+        <button class="leave-btn" (click)="onLeaveProject()">Leave Project</button>
+        }
+      </div>
+      }
+    </div>
+
+    <div class="section-header">
+      <h2>Boards</h2>
+      <button (click)="showCreateForm.set(!showCreateForm())">
+        {{ showCreateForm() ? 'Cancel' : '+ New Board' }}
+      </button>
+    </div>
+
+    @if (showCreateForm()) {
+    <form class="create-form" (submit)="onCreateSubmit($event)">
+      <input type="text" placeholder="Board name" [formField]="createForm.name" />
+      @if (createForm.name().touched() && createForm.name().invalid()) {
+      <span class="error">{{ createForm.name().errors()[0]?.message }}</span>
+      }
+      <button type="submit" [disabled]="isCreating()">
+        {{ isCreating() ? 'Creating...' : 'Create' }}
+      </button>
+    </form>
+    }
+
+    @if (errorMessage()) {
+    <div class="error-banner">{{ errorMessage() }}</div>
+    }
+
+    @if (isLoading()) {
+    <p>Loading boards...</p>
+    } @else if (boards().length === 0) {
+    <p class="empty-state">No boards yet — create your first one above.</p>
+    } @else {
+    <div class="board-grid">
+      @for (board of boards(); track board.id) {
+      <div class="board-card" (click)="onOpenBoard(board)">
+        <h3>{{ board.name }}</h3>
+        <span class="meta">{{ board.columns.length }} column{{ board.columns.length === 1 ? '' : 's' }}</span>
+      </div>
+      }
+    </div>
+    }
+  </main>
+</div>

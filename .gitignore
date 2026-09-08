@@ -1,0 +1,15 @@
+# .NET
+TaskFlow.Api/bin/
+TaskFlow.Api/obj/
+TaskFlow.Api/appsettings.Development.json
+*.user
+
+# Angular
+taskflow-client/node_modules/
+taskflow-client/dist/
+taskflow-client/.angular/
+
+# OS/editor
+.vs/
+.vscode/
+.DS_Store

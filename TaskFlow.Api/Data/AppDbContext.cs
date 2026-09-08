@@ -19,6 +19,8 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<TaskItem> TaskItems => Set<TaskItem>();
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Label> Labels => Set<Label>();
+    public DbSet<EmailOtp> EmailOtps => Set<EmailOtp>();
+    public DbSet<ProjectInvitation> ProjectInvitations => Set<ProjectInvitation>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -75,5 +77,27 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .WithMany(p => p.Labels)
             .HasForeignKey(l => l.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<EmailOtp>()
+            .Property(o => o.Code)
+            .HasMaxLength(6);
+
+        builder.Entity<EmailOtp>()
+            .HasOne(o => o.User)
+            .WithMany()
+            .HasForeignKey(o => o.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<ProjectInvitation>()
+            .HasOne(i => i.Project)
+            .WithMany()
+            .HasForeignKey(i => i.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<ProjectInvitation>()
+            .HasOne(i => i.InvitedBy)
+            .WithMany()
+            .HasForeignKey(i => i.InvitedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

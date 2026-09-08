@@ -1,0 +1,41 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <h1>Create your account</h1>
+
+    <form (submit)="onSubmit($event)">
+      <div class="field">
+        <label for="fullName">Full name</label>
+        <input id="fullName" type="text" [formField]="registerForm.fullName" />
+        @if (registerForm.fullName().touched() && registerForm.fullName().invalid()) {
+          <span class="error">{{ registerForm.fullName().errors()[0]?.message }}</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" [formField]="registerForm.email" />
+        @if (registerForm.email().touched() && registerForm.email().invalid()) {
+          <span class="error">{{ registerForm.email().errors()[0]?.message }}</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" [formField]="registerForm.password" />
+        @if (registerForm.password().touched() && registerForm.password().invalid()) {
+          <span class="error">{{ registerForm.password().errors()[0]?.message }}</span>
+        }
+      </div>
+
+      @if (errorMessage()) {
+        <div class="error-banner">{{ errorMessage() }}</div>
+      }
+
+      <button type="submit" [disabled]="isSubmitting()">
+        {{ isSubmitting() ? 'Creating account...' : 'Register' }}
+      </button>
+    </form>
+
+    <p class="link-row">Already have an account? <a routerLink="/login">Log in</a></p>
+  </div>
+</div>
