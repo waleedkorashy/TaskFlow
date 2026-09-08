@@ -16,7 +16,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 
 
 var builder = WebApplication.CreateBuilder(args);
-var frontendBaseUrl = builder.Configuration["Frontend:BaseUrl"] ?? "http://localhost:4200";
+var frontendBaseUrl = builder.Configuration["Frontend:BaseUrl"] ?? "http://localhost:4200"; 
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi(options =>
