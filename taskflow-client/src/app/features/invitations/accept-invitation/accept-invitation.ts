@@ -1,15 +1,16 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { MatIcon } from '@angular/material/icon';
 import { InvitationsService } from '../../../core/services/invitations.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { InvitationPreview } from '../../../core/models/invitation.models';
+import { AuthLayout } from '../../../core/layout/auth-layout/auth-layout';
 
 @Component({
   selector: 'app-accept-invitation',
-  standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, MatIcon, AuthLayout],
   templateUrl: './accept-invitation.html',
-  styleUrl: './accept-invitation.scss'
+  styleUrl: './accept-invitation.scss',
 })
 export class AcceptInvitation implements OnInit {
   protected preview = signal<InvitationPreview | null>(null);
@@ -18,14 +19,12 @@ export class AcceptInvitation implements OnInit {
   protected isAccepting = signal(false);
   protected accepted = signal(false);
 
-  private token!: string;
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly invitationsService = inject(InvitationsService);
+  protected readonly authService = inject(AuthService);
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private invitationsService: InvitationsService,
-    protected authService: AuthService
-  ) {}
+  private token!: string;
 
   ngOnInit(): void {
     this.token = this.route.snapshot.paramMap.get('token')!;
@@ -38,7 +37,7 @@ export class AcceptInvitation implements OnInit {
       error: () => {
         this.errorMessage.set('This invitation link is invalid.');
         this.isLoading.set(false);
-      }
+      },
     });
   }
 
@@ -53,7 +52,7 @@ export class AcceptInvitation implements OnInit {
       error: (err) => {
         this.isAccepting.set(false);
         this.errorMessage.set(err?.error?.message ?? 'Could not accept invitation.');
-      }
+      },
     });
   }
 }

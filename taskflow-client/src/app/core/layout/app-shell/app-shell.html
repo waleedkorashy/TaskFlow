@@ -1,0 +1,86 @@
+@if (isAuthed()) {
+  <aside class="sidebar" [class.open]="mobileNavOpen()">
+    <div class="sidebar-top">
+    <a class="brand" routerLink="/projects" (click)="closeNav()">
+      <img ngSrc="logo.svg" width="36" height="36" priority alt="TaskFlow logo" />
+      <span class="brand-name">Task<span>Flow</span></span>
+    </a>
+    <button
+      type="button"
+      class="tf-icon-btn sidebar-close"
+      (click)="closeNav()"
+      aria-label="Close navigation menu"
+    >
+      <mat-icon aria-hidden="true">close</mat-icon>
+    </button>
+  </div>
+
+  <nav class="sidebar-nav" aria-label="Primary navigation">
+    <span class="nav-label">Workspace</span>
+    <a class="nav-item" routerLink="/dashboard" routerLinkActive="active" (click)="closeNav()">
+      <mat-icon aria-hidden="true">dashboard</mat-icon>
+      <span>Dashboard</span>
+    </a>
+    <a class="nav-item" routerLink="/projects" routerLinkActive="active" (click)="closeNav()">
+      <mat-icon aria-hidden="true">view_module</mat-icon>
+      <span>Projects</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-bottom">
+    <div class="conn-status" [class.connected]="connectionState() === 'connected'">
+      <span class="conn-dot"></span>
+      <span class="conn-text">{{ connectionLabel() }}</span>
+    </div>
+    <div class="user-card">
+      <span class="tf-avatar" aria-hidden="true">{{ initials() }}</span>
+      <span class="user-meta">
+        <span class="user-name">{{ user()?.fullName }}</span>
+        <span class="user-email">{{ user()?.email }}</span>
+      </span>
+      <button
+        type="button"
+        class="tf-icon-btn"
+        (click)="logout()"
+        title="Log out"
+        aria-label="Log out"
+      >
+        <mat-icon aria-hidden="true">logout</mat-icon>
+      </button>
+    </div>
+</div>
+  </aside>
+}
+
+@if (mobileNavOpen()) {
+  <div class="nav-scrim" (click)="closeNav()" aria-hidden="true"></div>
+}
+
+@if (isAuthed()) {
+  <header class="topbar">
+    <button
+      type="button"
+      class="tf-icon-btn topbar-burger"
+      (click)="toggleNav()"
+      aria-label="Open navigation menu"
+    >
+      <mat-icon aria-hidden="true">menu</mat-icon>
+    </button>
+    <a class="topbar-brand" routerLink="/projects" (click)="closeNav()">
+      <img ngSrc="logo.svg" width="28" height="28" alt="TaskFlow logo" />
+      <span class="brand-name">Task<span>Flow</span></span>
+    </a>
+    <span class="topbar-spacer"></span>
+    <span class="conn-dot" [class.connected]="connectionState() === 'connected'" aria-hidden="true"></span>
+    <span class="topbar-conn-text">{{ connectionLabel() }}</span>
+    <button type="button" class="tf-icon-btn" (click)="logout()" title="Log out" aria-label="Log out">
+      <mat-icon aria-hidden="true">logout</mat-icon>
+    </button>
+  </header>
+}
+
+<main class="content" [class.no-sidebar]="!isAuthed()">
+  <router-outlet />
+</main>
+
+<tf-toast-host />

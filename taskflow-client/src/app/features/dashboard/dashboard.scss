@@ -1,0 +1,135 @@
+// ---- Stat strip: numbers on open paper, no boxes ----
+.stat-row {
+  display: flex;
+  gap: var(--tf-space-10);
+  padding: 2px 0 var(--tf-space-6);
+  border-bottom: 1px solid var(--tf-border);
+}
+
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+
+  .stat-label {
+    font-size: var(--tf-fs-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--tf-text-400);
+  }
+}
+
+// ---- Projects: a real list with hairline rows ----
+.projects-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--tf-space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--tf-space-3);
+}
+
+.project-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--tf-border);
+}
+
+.project-row {
+  display: flex;
+  align-items: center;
+  gap: var(--tf-space-4);
+  width: 100%;
+  padding: 13px 8px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--tf-border);
+  cursor: pointer;
+  font-family: var(--tf-font-family);
+  text-align: left;
+  border-radius: var(--tf-radius-sm);
+  transition: background-color var(--tf-duration) var(--tf-ease);
+
+  &:hover {
+    background: var(--tf-surface-2);
+  }
+
+  .project-monogram {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--tf-radius-md);
+    background: var(--tf-primary-soft);
+    color: var(--tf-primary-deep);
+    font-size: var(--tf-fs-base);
+  }
+
+  .project-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .project-name {
+    font-size: var(--tf-fs-base);
+    font-weight: 600;
+    color: var(--tf-text-900);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .project-created {
+    font-size: var(--tf-fs-xs);
+    color: var(--tf-text-400);
+  }
+
+  .project-stats {
+    display: flex;
+    gap: var(--tf-space-4);
+  }
+
+  .project-stat {
+    font-size: var(--tf-fs-sm);
+    color: var(--tf-text-500);
+    white-space: nowrap;
+  }
+}
+
+// ---- Loading ----
+.stat-skeleton {
+  width: 320px;
+  height: 52px;
+  margin: 8px 0 var(--tf-space-6);
+}
+
+.row-skeleton {
+  height: 44px;
+  margin-bottom: var(--tf-space-2);
+}
+
+@media (max-width: 600px) {
+  .stat-row {
+    flex-wrap: wrap;
+    gap: var(--tf-space-6);
+  }
+
+  .project-row {
+    flex-wrap: wrap;
+  }
+
+  .project-stats {
+    flex: 1 1 100%;
+    margin-left: 54px;
+  }
+}

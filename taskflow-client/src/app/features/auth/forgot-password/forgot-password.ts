@@ -1,56 +1,50 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { form, FormField, required, email } from '@angular/forms/signals';
 import { MatIcon } from '@angular/material/icon';
 import { AuthService } from '../../../core/services/auth.service';
 import { AuthLayout } from '../../../core/layout/auth-layout/auth-layout';
 
 @Component({
-  selector: 'app-login',
+  selector: 'app-forgot-password',
   imports: [FormField, MatIcon, RouterLink, AuthLayout],
-  templateUrl: './login.html',
-  styleUrl: './login.scss',
+  templateUrl: './forgot-password.html',
 })
-export class Login {
+export class ForgotPassword {
   private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
 
   protected readonly model = signal({
     email: '',
-    password: '',
   });
 
-  protected readonly loginForm = form(this.model, (path) => {
+  protected readonly forgotForm = form(this.model, (path) => {
     required(path.email, { message: 'Email is required' });
     email(path.email, { message: 'Enter a valid email address' });
-    required(path.password, { message: 'Password is required' });
   });
 
   protected errorMessage = signal<string | null>(null);
+  protected successMessage = signal<string | null>(null);
   protected isSubmitting = signal(false);
 
   protected onSubmit(event: Event): void {
     event.preventDefault();
 
-    if (this.loginForm().invalid()) {
+    if (this.forgotForm().invalid()) {
       return;
     }
 
     this.isSubmitting.set(true);
     this.errorMessage.set(null);
+    this.successMessage.set(null);
 
-    this.auth.login(this.model()).subscribe({
-      next: () => {
+    this.auth.forgotPassword(this.model()).subscribe({
+      next: (res) => {
         this.isSubmitting.set(false);
-        this.router.navigate(['/projects']);
+        this.successMessage.set(res.message);
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        if (err.status === 403) {
-          this.router.navigate(['/verify-otp'], { queryParams: { email: this.model().email } });
-        } else {
-          this.errorMessage.set(err?.error?.message ?? 'Invalid email or password.');
-        }
+        this.errorMessage.set(err?.error?.message ?? 'Something went wrong. Please try again.');
       },
     });
   }

@@ -1,104 +1,145 @@
-<div class="page">
-  <header class="topbar">
-    <a (click)="goBackToBoard()" class="back-link">← Back to Board</a>
+<div class="tf-page task-page">
+  <header class="task-header">
+    <button type="button" (click)="goBackToBoard()" class="back-link">
+      <mat-icon aria-hidden="true">arrow_back</mat-icon>
+      <span>Board</span>
+    </button>
+
+    @if (task(); as t) {
+      <div class="title-block">
+        @if (isEditingTitle()) {
+          <input
+            class="tf-input title-input"
+            [value]="editTitleValue()"
+            (input)="editTitleValue.set($any($event.target).value)"
+            (blur)="saveTitle()"
+            (keydown.enter)="saveTitle()"
+            aria-label="Task title"
+          />
+        } @else {
+          <h1 class="task-title" (click)="startEditTitle()">
+            {{ t.title }}
+            <button type="button" class="tf-icon-btn" (click)="startEditTitle()" aria-label="Edit task title" title="Edit title">
+              <mat-icon aria-hidden="true">edit</mat-icon>
+            </button>
+          </h1>
+        }
+        <p class="task-meta">Created {{ t.createdAt | date: 'mediumDate' }} · {{ comments().length }} comment{{ comments().length === 1 ? '' : 's' }}</p>
+      </div>
+    }
   </header>
 
-  <main>
-    @if (errorMessage()) {
-      <div class="error-banner">{{ errorMessage() }}</div>
-    }
+  @if (errorMessage()) {
+    <div class="tf-alert tf-alert-error" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      {{ errorMessage() }}
+    </div>
+  }
 
-    @if (isLoading()) {
-      <p>Loading task...</p>
-    } @else if (task(); as t) {
-      <div class="task-detail-grid">
-        <div class="main-column">
-          <div class="title-block">
-            @if (isEditingTitle()) {
-              <input
-                class="title-input"
-                [value]="editTitleValue()"
-                (input)="editTitleValue.set($any($event.target).value)"
-                (blur)="saveTitle()"
-                (keydown.enter)="saveTitle()"
-              />
-            } @else {
-              <h1 (click)="startEditTitle()">{{ t.title }}</h1>
-            }
-          </div>
+  @if (isLoading()) {
+    <div class="task-skeleton">
+      <div class="tf-skeleton task-skeleton-title"></div>
+      <div class="tf-skeleton task-skeleton-body"></div>
+      <div class="tf-skeleton task-skeleton-side"></div>
+    </div>
+  } @else if (task()) {
+    <div class="task-grid">
+      <div class="task-main">
+        <section class="tf-card section-card">
+          <h2 class="section-title">Description</h2>
+          <textarea
+            class="tf-textarea"
+            rows="6"
+            placeholder="Add a description…"
+            [value]="editDescription()"
+            (input)="editDescription.set($any($event.target).value)"
+            (blur)="saveDetails()"
+            aria-label="Task description"
+          ></textarea>
+        </section>
 
-          <section>
-            <h3>Description</h3>
-            <textarea
-              rows="4"
-              placeholder="Add a description..."
-              [value]="editDescription()"
-              (input)="editDescription.set($any($event.target).value)"
-              (blur)="saveDetails()"
-            ></textarea>
-          </section>
+        <section class="tf-card section-card">
+          <h2 class="section-title">Comments</h2>
 
-          <section>
-            <h3>Comments</h3>
-            <div class="comment-list">
-              @for (comment of comments(); track comment.id) {
-                <div class="comment">
+          <div class="comment-list">
+            @for (comment of comments(); track comment.id) {
+              <div class="comment">
+                <span class="tf-avatar comment-avatar" aria-hidden="true">{{ avatarInitials(comment.userName) }}</span>
+                <div class="comment-body">
+                  <div class="comment-header">
+                    <span class="comment-author">{{ comment.userName }}</span>
+                    <span class="comment-date">{{ comment.createdAt | date: 'MMM d, y, h:mm a' }}</span>
+                    @if (isOwnComment(comment)) {
+                      <div class="comment-actions">
+                        <button type="button" class="tf-icon-btn" (click)="startEditComment(comment)" aria-label="Edit comment" title="Edit comment">
+                          <mat-icon aria-hidden="true">edit</mat-icon>
+                        </button>
+                        <button type="button" class="tf-icon-btn tf-icon-btn-danger" (click)="onDeleteComment(comment)" aria-label="Delete comment" title="Delete comment">
+                          <mat-icon aria-hidden="true">delete_outline</mat-icon>
+                        </button>
+                      </div>
+                    }
+                  </div>
+
                   @if (editingCommentId() === comment.id) {
                     <textarea
-                      class="comment-edit-input"
+                      class="tf-textarea comment-edit-input"
                       rows="2"
                       [value]="editCommentText()"
                       (input)="editCommentText.set($any($event.target).value)"
+                      aria-label="Edit comment text"
                     ></textarea>
                     <div class="comment-edit-actions">
-                      <button type="button" (click)="saveCommentEdit(comment.id)">Save</button>
-                      <button type="button" (click)="cancelEditComment()">Cancel</button>
+                      <button type="button" class="tf-btn tf-btn-primary tf-btn-sm" (click)="saveCommentEdit(comment.id)">Save</button>
+                      <button type="button" class="tf-btn tf-btn-ghost tf-btn-sm" (click)="cancelEditComment()">Cancel</button>
                     </div>
                   } @else {
-                    <div class="comment-header">
-                      <strong>{{ comment.userName }}</strong>
-                      @if (isOwnComment(comment)) {
-                        <div class="comment-actions">
-                          <button class="icon-btn" (click)="startEditComment(comment)" title="Edit">✎</button>
-                          <button class="icon-btn" (click)="onDeleteComment(comment.id)" title="Delete">×</button>
-                        </div>
-                      }
-                    </div>
-                    <p>{{ comment.content }}</p>
+                    <p class="comment-content">{{ comment.content }}</p>
                   }
                 </div>
-              }
-              @if (comments().length === 0) {
-                <p class="empty-state">No comments yet.</p>
-              }
-            </div>
+              </div>
+            } @empty {
+              <p class="comment-empty">No comments yet — start the discussion.</p>
+            }
+          </div>
 
-            <form class="comment-form" (submit)="onPostComment($event)">
-              <input
-                type="text"
-                placeholder="Write a comment..."
-                [value]="newCommentText()"
-                (input)="newCommentText.set($any($event.target).value)"
-              />
-              <button type="submit" [disabled]="isPostingComment()">Post</button>
-            </form>
-          </section>
-        </div>
-
-        <aside class="side-column">
-          <section>
-            <h4>Due date</h4>
+          <form class="comment-form" (submit)="onPostComment($event)">
             <input
+              class="tf-input"
+              type="text"
+              placeholder="Write a comment…"
+              [value]="newCommentText()"
+              (input)="newCommentText.set($any($event.target).value)"
+              aria-label="Write a comment"
+            />
+            <button type="submit" class="tf-btn tf-btn-primary" [disabled]="isPostingComment() || !newCommentText().trim()">
+              {{ isPostingComment() ? 'Posting…' : 'Post' }}
+            </button>
+          </form>
+        </section>
+      </div>
+
+      <aside class="task-side">
+        <section class="tf-card side-card">
+          <h3 class="side-title">Details</h3>
+
+          <div class="side-field">
+            <label class="tf-label" for="dueDate">Due date</label>
+            <input
+              id="dueDate"
+              class="tf-input"
               type="date"
               [value]="editDueDate()"
               (input)="editDueDate.set($any($event.target).value)"
               (blur)="saveDetails()"
             />
-          </section>
+          </div>
 
-          <section>
-            <h4>Assignee</h4>
+          <div class="side-field">
+            <label class="tf-label" for="assignee">Assignee</label>
             <select
+              id="assignee"
+              class="tf-select"
               [value]="editAssigneeId()"
               (change)="editAssigneeId.set($any($event.target).value); saveDetails()"
             >
@@ -107,61 +148,89 @@
                 <option [value]="member.userId">{{ member.fullName }}</option>
               }
             </select>
-          </section>
+          </div>
+        </section>
 
-          <section>
-            <h4>Labels</h4>
+        <section class="tf-card side-card">
+          <h3 class="side-title">Labels</h3>
+
+          @if (allLabels().length > 0) {
             <div class="label-list">
               @for (label of allLabels(); track label.id) {
                 <div class="label-row">
                   @if (editingLabelId() === label.id) {
                     <input
-                      class="label-edit-input"
+                      class="tf-input label-edit-input"
                       [value]="editLabelName()"
                       (input)="editLabelName.set($any($event.target).value)"
+                      aria-label="Label name"
                     />
                     <input
+                      class="label-color-input"
                       type="color"
                       [value]="editLabelColor()"
                       (input)="editLabelColor.set($any($event.target).value)"
+                      aria-label="Label color"
                     />
-                    <button type="button" class="icon-btn" (click)="saveLabelEdit(label.id)" title="Save">✓</button>
-                    <button type="button" class="icon-btn" (click)="cancelEditLabel()" title="Cancel">×</button>
+                    <button type="button" class="tf-icon-btn" (click)="saveLabelEdit(label.id)" aria-label="Save label">
+                      <mat-icon aria-hidden="true">check</mat-icon>
+                    </button>
+                    <button type="button" class="tf-icon-btn" (click)="cancelEditLabel()" aria-label="Cancel">
+                      <mat-icon aria-hidden="true">close</mat-icon>
+                    </button>
                   } @else {
                     <button
-                      class="label-chip"
+                      type="button"
+                      class="tf-chip label-toggle"
                       [class.attached]="isLabelAttached(label.id)"
                       [style.background]="isLabelAttached(label.id) ? label.colorHex : 'transparent'"
                       [style.border-color]="label.colorHex"
-                      [style.color]="isLabelAttached(label.id) ? 'white' : label.colorHex"
+                      [style.color]="isLabelAttached(label.id) ? '#ffffff' : label.colorHex"
                       (click)="toggleLabel(label)"
                     >
                       {{ label.name }}
+                      @if (isLabelAttached(label.id)) {
+                        <mat-icon aria-hidden="true">check</mat-icon>
+                      }
                     </button>
-                    <button class="icon-btn" (click)="startEditLabel(label)" title="Rename">✎</button>
-                    <button class="icon-btn" (click)="onDeleteLabel(label.id)" title="Delete">×</button>
+                    <div class="label-row-actions">
+                      <button type="button" class="tf-icon-btn" (click)="startEditLabel(label)" aria-label="Rename label" title="Rename">
+                        <mat-icon aria-hidden="true">edit</mat-icon>
+                      </button>
+                      <button type="button" class="tf-icon-btn tf-icon-btn-danger" (click)="onDeleteLabel(label)" aria-label="Delete label" title="Delete">
+                        <mat-icon aria-hidden="true">delete_outline</mat-icon>
+                      </button>
+                    </div>
                   }
                 </div>
               }
             </div>
+          }
 
-            <form class="new-label-form" (submit)="onCreateLabel($event)">
+          <form class="new-label-form" (submit)="onCreateLabel($event)">
+            <input
+              class="tf-input"
+              type="text"
+              placeholder="New label name"
+              [value]="newLabelName()"
+              (input)="newLabelName.set($any($event.target).value)"
+              aria-label="New label name"
+            />
+            <div class="new-label-actions">
               <input
-                type="text"
-                placeholder="New label name"
-                [value]="newLabelName()"
-                (input)="newLabelName.set($any($event.target).value)"
-              />
-              <input
+                class="label-color-input"
                 type="color"
                 [value]="newLabelColor()"
                 (input)="newLabelColor.set($any($event.target).value)"
+                aria-label="Label color"
               />
-              <button type="submit" [disabled]="isCreatingLabel()">+</button>
-            </form>
-          </section>
-        </aside>
-      </div>
-    }
-  </main>
+              <button type="submit" class="tf-btn tf-btn-soft" [disabled]="isCreatingLabel() || !newLabelName().trim()">
+                + Add
+              </button>
+            </div>
+          </form>
+        </section>
+      </aside>
+    </div>
+  }
 </div>

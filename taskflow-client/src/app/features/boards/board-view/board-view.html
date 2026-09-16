@@ -1,84 +1,211 @@
-<div class="page">
-  <header class="topbar">
-    @if (board(); as b) {
-    <a [routerLink]="['/projects', b.projectId]" class="back-link">← Back to Project</a>
-    <div class="title-row">
-      @if (isEditingBoardName()) {
-      <input class="name-input" [value]="editBoardNameValue()"
-        (input)="editBoardNameValue.set($any($event.target).value)" (blur)="saveBoardName()"
-        (keydown.enter)="saveBoardName()" />
-      } @else {
-      <h1 (click)="startEditBoardName()">{{ b.name }}</h1>
-      }
-      <button class="delete-board-btn" (click)="onDeleteBoard()">Delete Board</button>
-    </div>
-    }
-  </header>
+<div class="board-page">
+  @if (board(); as b) {
+    <header class="board-header">
+      <div class="board-header-main">
+        <a class="back-link" [routerLink]="['/projects', b.projectId]">
+          <mat-icon aria-hidden="true">arrow_back</mat-icon>
+          <span>Project</span>
+        </a>
 
-  <main>
-    @if (errorMessage()) {
-    <div class="error-banner">{{ errorMessage() }}</div>
-    }
-
-    @if (isLoading()) {
-    <p class="loading">Loading board...</p>
-    } @else {
-    <div class="board-columns">
-      @for (column of columns(); track column.id) {
-      <div class="column">
-        <div class="column-header">
-          @if (editingColumnId() === column.id) {
-          <input class="column-name-input" [value]="editColumnName()"
-            (input)="editColumnName.set($any($event.target).value)" (blur)="saveColumnName(column.id)"
-            (keydown.enter)="saveColumnName(column.id)" />
+        <div class="board-title-wrap">
+          @if (isEditingBoardName()) {
+            <input
+              class="tf-input board-name-input"
+              [value]="editBoardNameValue()"
+              (input)="editBoardNameValue.set($any($event.target).value)"
+              (blur)="saveBoardName()"
+              (keydown.enter)="saveBoardName()"
+              aria-label="Board name"
+            />
           } @else {
-          <h3 (click)="startEditColumn(column)">{{ column.name }}</h3>
-          }
-          <div class="column-header-actions">
-            <span class="task-count">{{ column.tasks.length }}</span>
-            <button class="delete-column-btn" (click)="onDeleteColumn(column.id)">×</button>
-          </div>
-        </div>
-
-        <div class="task-list" cdkDropList [id]="column.id" [cdkDropListData]="column.tasks"
-          [cdkDropListConnectedTo]="getColumnIds()" (cdkDropListDropped)="onTaskDropped($event)">
-          @for (task of column.tasks; track task.id) {
-          <div class="task-card" cdkDrag>
-            <span class="task-title" (click)="onOpenTask(task)">{{ task.title }}</span>
-            <button class="delete-btn" (click)="onDeleteTask(task.id, column.id)">×</button>
-          </div>
+            <h1 class="board-title">
+              {{ b.name }}
+              <button
+                type="button"
+                class="tf-icon-btn"
+                (click)="startEditBoardName()"
+                aria-label="Rename board"
+                title="Rename board"
+              >
+                <mat-icon aria-hidden="true">edit</mat-icon>
+              </button>
+            </h1>
           }
         </div>
 
-        @if (column.showAddTask) {
-        <form class="add-task-form" (submit)="onAddTask($event, column.id)">
-          <input type="text" placeholder="Task title" [value]="getTaskInputValue(column.id)"
-            (input)="setTaskInputValue(column.id, $any($event.target).value)" />
-          <div class="form-actions">
-            <button type="submit" [disabled]="isAddingTaskFor()[column.id]">Add</button>
-            <button type="button" (click)="toggleAddTask(column.id)">Cancel</button>
-          </div>
-        </form>
-        } @else {
-        <button class="add-task-btn" (click)="toggleAddTask(column.id)">+ Add task</button>
-        }
+        <div class="board-search tf-input-group">
+          <mat-icon aria-hidden="true">search</mat-icon>
+          <input
+            class="tf-input"
+            type="search"
+            placeholder="Search tasks…"
+            [value]="searchQuery()"
+            (input)="searchQuery.set($any($event.target).value)"
+            aria-label="Search tasks on this board"
+          />
+          @if (hasFilter()) {
+            <button type="button" class="tf-icon-btn search-clear" (click)="searchQuery.set('')" aria-label="Clear search">
+              <mat-icon aria-hidden="true">close</mat-icon>
+            </button>
+          }
+        </div>
+
+        <button type="button" class="tf-btn tf-btn-danger-ghost tf-btn-sm" (click)="onDeleteBoard()">
+          Delete
+        </button>
       </div>
+    </header>
+  }
+
+  @if (errorMessage()) {
+    <div class="tf-alert tf-alert-error board-error" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="board-columns" aria-label="Loading board">
+      @for (_ of [1, 2, 3, 4]; track $index) {
+        <div class="column column-skeleton">
+          <div class="tf-skeleton column-skeleton-title"></div>
+          @for (_ of [1, 2, 3]; track $index) {
+            <div class="tf-skeleton column-skeleton-card"></div>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="board-columns" cdkDropListGroup>
+      @for (column of columns(); track column.id) {
+        <section class="column" [attr.aria-label]="'Column ' + column.name">
+          <header class="column-header">
+            <div class="column-title-wrap">
+              @if (editingColumnId() === column.id) {
+                <input
+                  class="tf-input column-name-input"
+                  [value]="editColumnName()"
+                  (input)="editColumnName.set($any($event.target).value)"
+                  (blur)="saveColumnName(column.id)"
+                  (keydown.enter)="saveColumnName(column.id)"
+                  aria-label="Column name"
+                />
+              } @else {
+                <h2 class="column-name" (click)="startEditColumn(column)">{{ column.name }}</h2>
+              }
+              <span class="column-count">
+                {{ visibleTasks(column).length }} task{{ visibleTasks(column).length === 1 ? '' : 's' }}
+              </span>
+            </div>
+            <div class="column-actions">
+              <button type="button" class="tf-icon-btn" (click)="startEditColumn(column)" aria-label="Rename column" title="Rename column">
+                <mat-icon aria-hidden="true">edit</mat-icon>
+              </button>
+              <button type="button" class="tf-icon-btn tf-icon-btn-danger" (click)="onDeleteColumn(column.id)" aria-label="Delete column" title="Delete column">
+                <mat-icon aria-hidden="true">delete_outline</mat-icon>
+              </button>
+            </div>
+          </header>
+
+          <div
+            class="task-list"
+            cdkDropList
+            [id]="column.id"
+            [cdkDropListData]="column.tasks"
+            [cdkDropListDisabled]="hasFilter()"
+            [cdkDropListConnectedTo]="getColumnIds()"
+            (cdkDropListDropped)="onTaskDropped($event)"
+          >
+            @if (hasFilter() && visibleTasks(column).length === 0) {
+              <p class="no-results">No matching tasks</p>
+            } @else {
+              @for (task of visibleTasks(column); track task.id) {
+                <div class="task-card" cdkDrag [cdkDragDisabled]="hasFilter()">
+                  <div class="task-card-top">
+                    <button type="button" class="task-title" (click)="onOpenTask(task)">{{ task.title }}</button>
+                    <button
+                      type="button"
+                      class="tf-icon-btn task-delete"
+                      (click)="onDeleteTask(task, column.id)"
+                      aria-label="Delete task"
+                      title="Delete task"
+                    >
+                      <mat-icon aria-hidden="true">close</mat-icon>
+                    </button>
+                  </div>
+
+                  @if (task.labels.length > 0) {
+                    <div class="task-labels">
+                      @for (label of task.labels; track label.id) {
+                        <span class="label-dot" [style.background]="label.colorHex" [title]="label.name" [attr.aria-label]="label.name"></span>
+                      }
+                    </div>
+                  }
+
+                  <div class="task-card-footer">
+                    @if (task.dueDate) {
+                      <span class="task-due" [class.overdue]="isOverdue(task.dueDate)">
+                        {{ task.dueDate | date: 'MMM d' }}
+                      </span>
+                    }
+                    @if (task.assigneeName) {
+                      <span class="tf-avatar tf-avatar-sm task-assignee" [attr.aria-label]="'Assigned to ' + task.assigneeName">
+                        {{ initials(task.assigneeName) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+            }
+          </div>
+
+          @if (column.showAddTask) {
+            <form class="add-task-form" (submit)="onAddTask($event, column.id)">
+              <input
+                class="tf-input"
+                type="text"
+                placeholder="Task title"
+                [value]="getTaskInputValue(column.id)"
+                (input)="setTaskInputValue(column.id, $any($event.target).value)"
+                aria-label="New task title"
+              />
+              <div class="form-actions">
+                <button type="submit" class="tf-btn tf-btn-primary tf-btn-sm" [disabled]="isAddingTaskFor()[column.id]">
+                  {{ isAddingTaskFor()[column.id] ? 'Adding…' : 'Add' }}
+                </button>
+                <button type="button" class="tf-btn tf-btn-ghost tf-btn-sm" (click)="toggleAddTask(column.id)">Cancel</button>
+              </div>
+            </form>
+          } @else {
+            <button type="button" class="add-task-btn" (click)="toggleAddTask(column.id)">
+              <mat-icon aria-hidden="true">add</mat-icon>
+              Add task
+            </button>
+          }
+        </section>
       }
 
       <div class="column add-column">
         @if (showAddColumn()) {
-        <form (submit)="onAddColumn($event)">
-          <input type="text" placeholder="Column name" [formField]="columnForm.name" />
-          <div class="form-actions">
-            <button type="submit" [disabled]="isAddingColumn()">Add</button>
-            <button type="button" (click)="showAddColumn.set(false)">Cancel</button>
-          </div>
-        </form>
+          <form (submit)="onAddColumn($event)">
+            <input class="tf-input" type="text" placeholder="Column name" [formField]="columnForm.name" aria-label="New column name" />
+            @if (columnForm.name().touched() && columnForm.name().invalid()) {
+              <span class="tf-error-text">{{ columnForm.name().errors()[0]?.message }}</span>
+            }
+            <div class="form-actions">
+              <button type="submit" class="tf-btn tf-btn-primary tf-btn-sm" [disabled]="isAddingColumn()">
+                {{ isAddingColumn() ? 'Adding…' : 'Add' }}
+              </button>
+              <button type="button" class="tf-btn tf-btn-ghost tf-btn-sm" (click)="showAddColumn.set(false)">Cancel</button>
+            </div>
+          </form>
         } @else {
-        <button class="add-column-btn" (click)="showAddColumn.set(true)">+ Add column</button>
+          <button type="button" class="add-column-btn" (click)="showAddColumn.set(true)">
+            <mat-icon aria-hidden="true">add</mat-icon>
+            Add column
+          </button>
         }
       </div>
     </div>
-    }
-  </main>
+  }
 </div>

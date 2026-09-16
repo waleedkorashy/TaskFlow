@@ -1,34 +1,69 @@
-<div class="auth-container">
-  <div class="auth-card">
-    <h1>Log in to TaskFlow</h1>
-
-    <form (submit)="onSubmit($event)">
-      <div class="field">
-        <label for="email">Email</label>
-        <input id="email" type="email" [formField]="loginForm.email" />
-        @if (loginForm.email().touched() && loginForm.email().invalid()) {
-          <span class="error">{{ loginForm.email().errors()[0]?.message }}</span>
-        }
+<tf-auth-layout
+  title="Log in to TaskFlow"
+  subtitle="Welcome back — your work is waiting."
+>
+  <form (submit)="onSubmit($event)" novalidate>
+    <div class="tf-field">
+      <div class="tf-field-row">
+        <label class="tf-label" for="email">Email</label>
       </div>
-
-      <div class="field">
-        <label for="password">Password</label>
-        <input id="password" type="password" [formField]="loginForm.password" />
-        @if (loginForm.password().touched() && loginForm.password().invalid()) {
-          <span class="error">{{ loginForm.password().errors()[0]?.message }}</span>
-        }
+      <div class="tf-input-group">
+        <mat-icon aria-hidden="true">mail_outline</mat-icon>
+        <input
+          id="email"
+          class="tf-input"
+          type="email"
+          autocomplete="email"
+          placeholder="you@example.com"
+          [class.tf-input-invalid]="loginForm.email().touched() && loginForm.email().invalid()"
+          [formField]="loginForm.email"
+        />
       </div>
-
-      @if (errorMessage()) {
-        <div class="error-banner">{{ errorMessage() }}</div>
+      @if (loginForm.email().touched() && loginForm.email().invalid()) {
+        <span class="tf-error-text">{{ loginForm.email().errors()[0]?.message }}</span>
       }
+    </div>
 
-      <button type="submit" [disabled]="isSubmitting()">
-        {{ isSubmitting() ? 'Logging in...' : 'Log in' }}
-      </button>
-    </form>
+    <div class="tf-field">
+      <div class="tf-field-row">
+        <label class="tf-label" for="password">Password</label>
+        <a class="tf-link-sm" routerLink="/forgot-password" id="forgotLink">Forgot password?</a>
+      </div>
+      <div class="tf-input-group">
+        <mat-icon aria-hidden="true">lock_outline</mat-icon>
+        <input
+          id="password"
+          class="tf-input"
+          type="password"
+          autocomplete="current-password"
+          placeholder="Enter your password"
+          [class.tf-input-invalid]="loginForm.password().touched() && loginForm.password().invalid()"
+          [formField]="loginForm.password"
+        />
+      </div>
+      @if (loginForm.password().touched() && loginForm.password().invalid()) {
+        <span class="tf-error-text">{{ loginForm.password().errors()[0]?.message }}</span>
+      }
+    </div>
 
-    <p class="link-row"><a routerLink="/forgot-password">Forgot password?</a></p>
-    <p class="link-row">Don't have an account? <a routerLink="/register">Register</a></p>
-  </div>
-</div>
+    @if (errorMessage()) {
+      <div class="tf-alert tf-alert-error" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <button type="submit" class="tf-btn tf-btn-primary tf-btn-lg tf-btn-block" [disabled]="isSubmitting()">
+      @if (isSubmitting()) {
+        <mat-icon aria-hidden="true">hourglass_top</mat-icon>
+        Logging in…
+      } @else {
+        Log in
+      }
+    </button>
+  </form>
+
+  <p class="link-row">
+    Don't have an account? <a routerLink="/register">Create one</a>
+  </p>
+</tf-auth-layout>

@@ -1,31 +1,64 @@
-<div class="auth-container">
-  <div class="auth-card">
-    <h1>Verify your email</h1>
-    <p class="subtitle">We sent a 6-digit code to {{ model().email }}</p>
+<tf-auth-layout
+  title="Check your inbox"
+  subtitle="We sent a 6-digit code to {{ model().email || 'your email address' }}."
+>
+  <form (submit)="onSubmit($event)" novalidate>
+    <div class="tf-field">
+      <label class="tf-label" for="code">Verification code</label>
+      <input
+        id="code"
+        class="tf-input otp-input"
+        type="text"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        placeholder="000000"
+        [class.tf-input-invalid]="otpForm.code().touched() && otpForm.code().invalid()"
+        [formField]="otpForm.code"
+      />
+      @if (otpForm.code().touched() && otpForm.code().invalid()) {
+        <span class="tf-error-text">{{ otpForm.code().errors()[0]?.message }}</span>
+      }
+      <span class="tf-hint">The code expires in 10 minutes.</span>
+    </div>
 
-    <form (submit)="onSubmit($event)">
-      <div class="field">
-        <label for="code">Verification code</label>
-<input id="code" type="text" [formField]="otpForm.code" />        @if (otpForm.code().touched() && otpForm.code().invalid()) {
-          <span class="error">{{ otpForm.code().errors()[0]?.message }}</span>
-        }
+    @if (errorMessage()) {
+      <div class="tf-alert tf-alert-error" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        {{ errorMessage() }}
       </div>
+    }
+    @if (infoMessage()) {
+      <div class="tf-alert tf-alert-success" role="status">
+        <mat-icon aria-hidden="true">check_circle_outline</mat-icon>
+        {{ infoMessage() }}
+      </div>
+    }
 
-      @if (errorMessage()) {
-        <div class="error-banner">{{ errorMessage() }}</div>
+    <button type="submit" class="tf-btn tf-btn-primary tf-btn-lg tf-btn-block" [disabled]="isSubmitting()">
+      @if (isSubmitting()) {
+        <mat-icon aria-hidden="true">hourglass_top</mat-icon>
+        Verifying…
+      } @else {
+        Verify email
       }
-      @if (infoMessage()) {
-        <div class="info-banner">{{ infoMessage() }}</div>
+    </button>
+  </form>
+
+  <p class="link-row">
+    Didn't get a code?
+    <a
+      (click)="onResend()"
+      role="button"
+      tabindex="0"
+      [attr.aria-disabled]="isResending() || resendCooldown() > 0"
+    >
+      @if (isResending()) {
+        Sending…
+      } @else if (resendCooldown() > 0) {
+        Resend in {{ resendCooldown() }}s
+      } @else {
+        Resend code
       }
-
-      <button type="submit" [disabled]="isSubmitting()">
-        {{ isSubmitting() ? 'Verifying...' : 'Verify' }}
-      </button>
-    </form>
-
-    <p class="link-row">
-      Didn't get a code?
-      <a (click)="onResend()">{{ isResending() ? 'Sending...' : 'Resend code' }}</a>
-    </p>
-  </div>
-</div>
+    </a>
+  </p>
+</tf-auth-layout>

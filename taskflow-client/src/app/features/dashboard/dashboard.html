@@ -1,0 +1,74 @@
+<div class="tf-page">
+  <header class="tf-page-header">
+    <div>
+      <p class="tf-kicker">Workspace overview</p>
+      <h1 class="tf-page-title">{{ greeting() }}</h1>
+      <p class="tf-page-subtitle">Here's what's happening across your projects.</p>
+    </div>
+  </header>
+
+  @if (errorMessage()) {
+    <div class="tf-alert tf-alert-error" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="tf-skeleton stat-skeleton"></div>
+    <div class="tf-skeleton row-skeleton"></div>
+    <div class="tf-skeleton row-skeleton"></div>
+    <div class="tf-skeleton row-skeleton"></div>
+  } @else if (stats(); as s) {
+    <div class="stat-row">
+      <div class="stat">
+        <span class="stat-value">{{ s.projectCount }}</span>
+        <span class="stat-label">Projects</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ s.boardCount }}</span>
+        <span class="stat-label">Boards</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ s.taskCount }}</span>
+        <span class="stat-label">Tasks</span>
+      </div>
+    </div>
+
+    <section>
+      <div class="projects-heading">
+        <h2 class="tf-section-title">Your projects</h2>
+        <a class="tf-link" routerLink="/projects">View all projects</a>
+      </div>
+
+      @if (s.recentProjects.length === 0) {
+        <div class="tf-card">
+          <div class="tf-empty">
+            <mat-icon aria-hidden="true">view_module</mat-icon>
+            <h3>No projects yet</h3>
+            <p>Create a project and your boards will show up here.</p>
+          </div>
+        </div>
+      } @else {
+        <ul class="project-rows">
+          @for (project of s.recentProjects; track project.id) {
+            <li>
+              <button type="button" class="project-row" (click)="onOpenProject(project)">
+                <span class="tf-avatar project-monogram" aria-hidden="true">{{ initial(project.name) }}</span>
+                <span class="project-main">
+                  <span class="project-name">{{ project.name }}</span>
+                  <span class="project-created">Created {{ project.createdAt | date: 'MMM d, y' }}</span>
+                </span>
+                <span class="project-stats">
+                  <span class="project-stat">{{ plural(project.boardCount, 'board') }}</span>
+                  <span class="project-stat">{{ plural(project.taskCount, 'task') }}</span>
+                  <span class="project-stat">{{ plural(project.memberCount, 'member') }}</span>
+                </span>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+</div>

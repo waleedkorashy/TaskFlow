@@ -1,18 +1,23 @@
-import { Component, OnInit, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { form, FormField, required } from '@angular/forms/signals';
+import { DatePipe } from '@angular/common';
+import { MatIcon } from '@angular/material/icon';
 import { ProjectsService } from '../../../core/services/projects.service';
-import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Project } from '../../../core/models/project.models';
 
 @Component({
   selector: 'app-project-list',
-  standalone: true,
-  imports: [FormField, RouterLink],
+  imports: [FormField, DatePipe, MatIcon],
   templateUrl: './project-list.html',
-  styleUrl: './project-list.scss'
+  styleUrl: './project-list.scss',
 })
 export class ProjectList implements OnInit {
+  private readonly projectsService = inject(ProjectsService);
+  private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
+
   protected projects = signal<Project[]>([]);
   protected isLoading = signal(true);
   protected errorMessage = signal<string | null>(null);
@@ -23,12 +28,6 @@ export class ProjectList implements OnInit {
     required(path.name, { message: 'Project name is required' });
   });
   protected isCreating = signal(false);
-
-  constructor(
-    private projectsService: ProjectsService,
-    protected authService: AuthService,
-    private router: Router
-  ) {}
 
   ngOnInit(): void {
     this.loadProjects();
@@ -44,7 +43,7 @@ export class ProjectList implements OnInit {
       error: () => {
         this.errorMessage.set('Could not load projects.');
         this.isLoading.set(false);
-      }
+      },
     });
   }
 
@@ -57,28 +56,28 @@ export class ProjectList implements OnInit {
     this.isCreating.set(true);
     const value = this.createModel();
 
-    this.projectsService.create({
-      name: value.name,
-      description: value.description || null
-    }).subscribe({
-      next: () => {
-        this.isCreating.set(false);
-        this.showCreateForm.set(false);
-        this.createModel.set({ name: '', description: '' });
-        this.loadProjects();
-      },
-      error: () => {
-        this.isCreating.set(false);
-        this.errorMessage.set('Could not create project.');
-      }
-    });
+    this.projectsService
+      .create({ name: value.name, description: value.description || null })
+      .subscribe({
+        next: () => {
+          this.isCreating.set(false);
+          this.showCreateForm.set(false);
+          this.createModel.set({ name: '', description: '' });
+          this.loadProjects();
+          this.toast.success('Project created.');
+        },
+        error: () => {
+          this.isCreating.set(false);
+          this.toast.error('Could not create project.');
+        },
+      });
   }
 
   protected onOpenProject(project: Project): void {
     this.router.navigate(['/projects', project.id]);
   }
 
-  protected onLogout(): void {
-    this.authService.logout();
+  protected projectInitial(name: string): string {
+    return (name.trim().charAt(0) || '?').toUpperCase();
   }
 }

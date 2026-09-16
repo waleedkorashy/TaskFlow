@@ -1,31 +1,63 @@
-<p>accept-invitation works!</p>
-<div class="auth-container">
-  <div class="auth-card">
-    @if (isLoading()) {
-      <p>Loading invitation...</p>
-    } @else if (errorMessage()) {
-      <div class="error-banner">{{ errorMessage() }}</div>
-      <p class="link-row"><a routerLink="/projects">Go to your projects</a></p>
-    } @else if (accepted()) {
-      <h1>You're in!</h1>
-      <p>Redirecting to your projects...</p>
-    } @else if (preview(); as p) {
-      <h1>You're invited</h1>
-      <p><strong>{{ p.inviterName }}</strong> invited you to join <strong>{{ p.projectName }}</strong>.</p>
+<tf-auth-layout
+  title="Project invitation"
+  subtitle="You've been invited to collaborate."
+>
+  @if (isLoading()) {
+    <div class="invitation-state">
+      <mat-icon aria-hidden="true">hourglass_top</mat-icon>
+      <p>Loading invitation…</p>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="invitation-state">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <p>{{ errorMessage() }}</p>
+      <a class="tf-btn tf-btn-ghost tf-btn-block" routerLink="/projects">Go to your projects</a>
+    </div>
+  } @else if (accepted()) {
+    <div class="invitation-state invited-ok">
+      <mat-icon aria-hidden="true">check_circle</mat-icon>
+      <h1 class="tf-card-title">You're in!</h1>
+      <p>Redirecting to your projects…</p>
+    </div>
+  } @else if (preview(); as p) {
+    <div class="invitation-summary">
+      <div class="invitation-icon" aria-hidden="true">
+        <mat-icon>forum</mat-icon>
+      </div>
+      <p class="invitation-text">
+        <strong>{{ p.inviterName }}</strong> invited you to join
+        <strong>{{ p.projectName }}</strong>.
+      </p>
+    </div>
 
-      @if (!p.isValid) {
-        <div class="error-banner">This invitation has expired or is no longer valid.</div>
-      } @else if (!authService.isLoggedIn()) {
-        <p class="info-banner">Log in or register with <strong>{{ p.email }}</strong> to accept this invitation.</p>
-        <div class="button-row">
-          <a routerLink="/login" class="btn">Log in</a>
-          <a routerLink="/register" class="btn secondary">Register</a>
-        </div>
-      } @else {
-        <button (click)="onAccept()" [disabled]="isAccepting()">
-          {{ isAccepting() ? 'Joining...' : 'Accept Invitation' }}
-        </button>
-      }
+    @if (!p.isValid) {
+      <div class="tf-alert tf-alert-error" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        This invitation has expired or is no longer valid.
+      </div>
+    } @else if (!authService.isLoggedIn()) {
+      <div class="tf-alert tf-alert-info" role="status">
+        <mat-icon aria-hidden="true">info_outline</mat-icon>
+        Log in or register with <strong>{{ p.email }}</strong> to accept this invitation.
+      </div>
+      <div class="invitation-actions">
+        <a class="tf-btn tf-btn-primary tf-btn-block" routerLink="/login">Log in</a>
+        <a class="tf-btn tf-btn-secondary tf-btn-block" routerLink="/register">Register</a>
+      </div>
+    } @else {
+      <button
+        type="button"
+        class="tf-btn tf-btn-primary tf-btn-lg tf-btn-block"
+        (click)="onAccept()"
+        [disabled]="isAccepting()"
+      >
+        @if (isAccepting()) {
+          <mat-icon aria-hidden="true">hourglass_top</mat-icon>
+          Joining…
+        } @else {
+          Accept invitation
+        }
+      </button>
     }
-  </div>
-</div>
+  }
+</tf-auth-layout>

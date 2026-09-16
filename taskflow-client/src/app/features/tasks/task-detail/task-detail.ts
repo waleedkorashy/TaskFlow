@@ -1,11 +1,14 @@
-import { Component, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { FormField } from '@angular/forms/signals';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { DatePipe } from '@angular/common';
+import { MatIcon } from '@angular/material/icon';
 import { TasksService } from '../../../core/services/tasks.service';
 import { CommentsService } from '../../../core/services/comments.service';
 import { LabelsService } from '../../../core/services/labels.service';
 import { ProjectsService } from '../../../core/services/projects.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmService } from '../../../core/services/confirm.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { TaskItem } from '../../../core/models/task.models';
 import { Comment } from '../../../core/models/comment.models';
 import { Label } from '../../../core/models/label.models';
@@ -13,12 +16,21 @@ import { ProjectMember } from '../../../core/models/project.models';
 
 @Component({
   selector: 'app-task-detail',
-  standalone: true,
-  imports: [FormField, RouterLink],
+  imports: [DatePipe, MatIcon],
   templateUrl: './task-detail.html',
-  styleUrl: './task-detail.scss'
+  styleUrl: './task-detail.scss',
 })
 export class TaskDetail implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly tasksService = inject(TasksService);
+  private readonly commentsService = inject(CommentsService);
+  private readonly labelsService = inject(LabelsService);
+  private readonly projectsService = inject(ProjectsService);
+  private readonly authService = inject(AuthService);
+  private readonly confirmService = inject(ConfirmService);
+  private readonly toast = inject(ToastService);
+
   protected task = signal<TaskItem | null>(null);
   protected boardId = signal<string | null>(null);
   protected projectId = signal<string | null>(null);
@@ -43,23 +55,13 @@ export class TaskDetail implements OnInit {
   protected editCommentText = signal('');
 
   protected newLabelName = signal('');
-  protected newLabelColor = signal('#3f51b5');
+  protected newLabelColor = signal('#c1532a');
   protected isCreatingLabel = signal(false);
   protected editingLabelId = signal<string | null>(null);
   protected editLabelName = signal('');
-  protected editLabelColor = signal('#3f51b5');
+  protected editLabelColor = signal('#c1532a');
 
   private taskId!: string;
-
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private tasksService: TasksService,
-    private commentsService: CommentsService,
-    private labelsService: LabelsService,
-    private projectsService: ProjectsService,
-    protected authService: AuthService
-  ) {}
 
   ngOnInit(): void {
     this.taskId = this.route.snapshot.paramMap.get('id')!;
@@ -75,41 +77,36 @@ export class TaskDetail implements OnInit {
         this.editDescription.set(task.description ?? '');
         this.editDueDate.set(task.dueDate ? task.dueDate.substring(0, 10) : '');
         this.editAssigneeId.set(task.assigneeId ?? '');
+        this.boardId.set(task.boardId);
+        this.projectId.set(task.projectId);
+        this.taskLabelIds.set(task.labels.map((l) => l.id));
+        this.isLoading.set(false);
         this.resolveProjectContext();
       },
       error: () => {
         this.errorMessage.set('Could not load task.');
         this.isLoading.set(false);
-      }
+      },
     });
 
     this.commentsService.getByTask(this.taskId).subscribe({
-      next: (comments) => this.comments.set(comments)
+      next: (comments) => this.comments.set(comments),
+      error: () => this.toast.error('Could not load comments.'),
     });
   }
 
   private resolveProjectContext(): void {
-    const projectId = history.state?.projectId as string | undefined;
-    const boardId = history.state?.boardId as string | undefined;
-
-    if (!projectId || !boardId) {
-      this.isLoading.set(false);
-      return;
-    }
-
-    this.boardId.set(boardId);
-    this.projectId.set(projectId);
+    const projectId = this.projectId();
+    if (!projectId) return;
 
     this.projectsService.getMembers(projectId).subscribe({
-      next: (members) => this.members.set(members)
+      next: (members) => this.members.set(members),
+      error: () => this.toast.error('Could not load project members.'),
     });
 
     this.labelsService.getByProject(projectId).subscribe({
-      next: (labels) => {
-        this.allLabels.set(labels);
-        this.isLoading.set(false);
-      },
-      error: () => this.isLoading.set(false)
+      next: (labels) => this.allLabels.set(labels),
+      error: () => this.toast.error('Could not load labels.'),
     });
   }
 
@@ -137,21 +134,35 @@ export class TaskDetail implements OnInit {
     const t = this.task();
     if (!t) return;
 
-    this.tasksService.update(this.taskId, {
-      title: overrides.title ?? t.title,
-      description: this.editDescription().trim() || null,
-      dueDate: this.editDueDate() ? new Date(this.editDueDate()).toISOString() : null,
-      assigneeId: this.editAssigneeId() || null
-    }).subscribe({
-      next: (updated) => this.task.set(updated),
-      error: () => this.errorMessage.set('Could not save changes.')
-    });
+    this.tasksService
+      .update(this.taskId, {
+        title: overrides.title ?? t.title,
+        description: this.editDescription().trim() || null,
+        dueDate: this.editDueDate() ? new Date(this.editDueDate()).toISOString() : null,
+        assigneeId: this.editAssigneeId() || null,
+      })
+      .subscribe({
+        next: (updated) => {
+          this.task.set(updated);
+          this.taskLabelIds.set(updated.labels.map((l) => l.id));
+          this.toast.success('Task saved.');
+        },
+        error: () => this.toast.error('Could not save changes.'),
+      });
   }
 
   // ---- Comments (create, edit, delete — own comments only) ----
 
   protected isOwnComment(comment: Comment): boolean {
     return comment.userId === this.authService.currentUser()?.userId;
+  }
+
+  protected avatarInitials(name: string): string {
+    return name
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((p) => p.charAt(0).toUpperCase())
+      .join('');
   }
 
   protected onPostComment(event: Event): void {
@@ -162,14 +173,15 @@ export class TaskDetail implements OnInit {
     this.isPostingComment.set(true);
     this.commentsService.create(this.taskId, { content }).subscribe({
       next: (comment) => {
-        this.comments.update(c => [...c, comment]);
+        this.comments.update((c) => [...c, comment]);
         this.newCommentText.set('');
         this.isPostingComment.set(false);
+        this.toast.success('Comment posted.');
       },
       error: () => {
-        this.errorMessage.set('Could not post comment.');
         this.isPostingComment.set(false);
-      }
+        this.toast.error('Could not post comment.');
+      },
     });
   }
 
@@ -187,13 +199,14 @@ export class TaskDetail implements OnInit {
 
     this.commentsService.update(commentId, { content: newContent }).subscribe({
       next: (updated) => {
-        this.comments.update(c => c.map(x => x.id === commentId ? updated : x));
+        this.comments.update((c) => c.map((x) => (x.id === commentId ? updated : x)));
         this.editingCommentId.set(null);
+        this.toast.success('Comment updated.');
       },
       error: () => {
-        this.errorMessage.set('Could not update comment.');
         this.editingCommentId.set(null);
-      }
+        this.toast.error('Could not update comment.');
+      },
     });
   }
 
@@ -201,10 +214,13 @@ export class TaskDetail implements OnInit {
     this.editingCommentId.set(null);
   }
 
-  protected onDeleteComment(commentId: string): void {
-    this.commentsService.delete(commentId).subscribe({
-      next: () => this.comments.update(c => c.filter(x => x.id !== commentId)),
-      error: () => this.errorMessage.set('Could not delete comment.')
+  protected onDeleteComment(comment: Comment): void {
+    this.commentsService.delete(comment.id).subscribe({
+      next: () => {
+        this.comments.update((c) => c.filter((x) => x.id !== comment.id));
+        this.toast.success('Comment deleted.');
+      },
+      error: () => this.toast.error('Could not delete comment.'),
     });
   }
 
@@ -222,33 +238,32 @@ export class TaskDetail implements OnInit {
 
     action.subscribe({
       next: () => {
-        this.taskLabelIds.update(ids =>
-          attached ? ids.filter(id => id !== label.id) : [...ids, label.id]
+        this.taskLabelIds.update((ids) =>
+          attached ? ids.filter((id) => id !== label.id) : [...ids, label.id],
         );
       },
-      error: () => this.errorMessage.set('Could not update label.')
+      error: () => this.toast.error('Could not update label.'),
     });
   }
 
   protected onCreateLabel(event: Event): void {
     event.preventDefault();
     const name = this.newLabelName().trim();
-    if (!name) return;
-
     const projectId = this.projectId();
-    if (!projectId) return;
+    if (!name || !projectId) return;
 
     this.isCreatingLabel.set(true);
     this.labelsService.create(projectId, { name, colorHex: this.newLabelColor() }).subscribe({
       next: (label) => {
-        this.allLabels.update(l => [...l, label]);
+        this.allLabels.update((l) => [...l, label]);
         this.newLabelName.set('');
         this.isCreatingLabel.set(false);
+        this.toast.success('Label created.');
       },
       error: () => {
-        this.errorMessage.set('Could not create label.');
         this.isCreatingLabel.set(false);
-      }
+        this.toast.error('Could not create label.');
+      },
     });
   }
 
@@ -267,13 +282,14 @@ export class TaskDetail implements OnInit {
 
     this.labelsService.update(labelId, { name: newName, colorHex: this.editLabelColor() }).subscribe({
       next: (updated) => {
-        this.allLabels.update(l => l.map(x => x.id === labelId ? updated : x));
+        this.allLabels.update((l) => l.map((x) => (x.id === labelId ? updated : x)));
         this.editingLabelId.set(null);
+        this.toast.success('Label updated.');
       },
       error: () => {
-        this.errorMessage.set('Could not update label.');
         this.editingLabelId.set(null);
-      }
+        this.toast.error('Could not update label.');
+      },
     });
   }
 
@@ -281,15 +297,22 @@ export class TaskDetail implements OnInit {
     this.editingLabelId.set(null);
   }
 
-  protected onDeleteLabel(labelId: string): void {
-    if (!confirm('Delete this label? It will be removed from all tasks.')) return;
+  protected async onDeleteLabel(label: Label): Promise<void> {
+    const ok = await this.confirmService.confirm({
+      title: 'Delete label?',
+      message: `Delete "${label.name}"? It will be removed from all tasks.`,
+      confirmText: 'Delete label',
+      danger: true,
+    });
+    if (!ok) return;
 
-    this.labelsService.delete(labelId).subscribe({
+    this.labelsService.delete(label.id).subscribe({
       next: () => {
-        this.allLabels.update(l => l.filter(x => x.id !== labelId));
-        this.taskLabelIds.update(ids => ids.filter(id => id !== labelId));
+        this.allLabels.update((l) => l.filter((x) => x.id !== label.id));
+        this.taskLabelIds.update((ids) => ids.filter((id) => id !== label.id));
+        this.toast.success('Label deleted.');
       },
-      error: () => this.errorMessage.set('Could not delete label.')
+      error: () => this.toast.error('Could not delete label.'),
     });
   }
 

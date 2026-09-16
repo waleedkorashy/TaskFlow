@@ -1,29 +1,19 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { MatIcon } from '@angular/material/icon';
 
 @Component({
   selector: 'app-not-found',
-  standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, MatIcon],
   template: `
     <div class="not-found">
-      <h1>404</h1>
-      <p>This page doesn't exist.</p>
-      <a routerLink="/projects">Go back to your projects</a>
+      <div class="tf-empty">
+        <mat-icon aria-hidden="true">explore_off</mat-icon>
+        <h3>404 — Page not found</h3>
+        <p>The page you're looking for doesn't exist or has moved.</p>
+        <a class="tf-btn tf-btn-primary" routerLink="/projects">Back to projects</a>
+      </div>
     </div>
   `,
-  styles: [`
-    .not-found {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #f4f5f7;
-      text-align: center;
-      h1 { font-size: 3rem; margin: 0; color: #3f51b5; }
-      a { color: #3f51b5; margin-top: 1rem; }
-    }
-  `]
 })
 export class NotFound {}

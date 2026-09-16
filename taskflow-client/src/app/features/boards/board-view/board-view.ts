@@ -1,10 +1,14 @@
-import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { form, FormField, required } from '@angular/forms/signals';
-import { CdkDropList, CdkDrag, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { CdkDropList, CdkDropListGroup, CdkDrag, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { DatePipe } from '@angular/common';
+import { MatIcon } from '@angular/material/icon';
 import { BoardsService } from '../../../core/services/boards.service';
 import { TasksService } from '../../../core/services/tasks.service';
 import { SignalRService } from '../../../core/services/signalr.service';
+import { ConfirmService } from '../../../core/services/confirm.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Board, BoardColumn } from '../../../core/models/board.models';
 import { TaskItem } from '../../../core/models/task.models';
 
@@ -15,16 +19,26 @@ interface ColumnWithTasks extends BoardColumn {
 
 @Component({
   selector: 'app-board-view',
-  standalone: true,
-  imports: [FormField, RouterLink, CdkDropList, CdkDrag],
+  imports: [FormField, RouterLink, CdkDropList, CdkDropListGroup, CdkDrag, DatePipe, MatIcon],
   templateUrl: './board-view.html',
-  styleUrl: './board-view.scss'
+  styleUrl: './board-view.scss',
 })
 export class BoardView implements OnInit, OnDestroy {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly boardsService = inject(BoardsService);
+  private readonly tasksService = inject(TasksService);
+  private readonly signalRService = inject(SignalRService);
+  private readonly confirmService = inject(ConfirmService);
+  private readonly toast = inject(ToastService);
+
   protected board = signal<Board | null>(null);
   protected columns = signal<ColumnWithTasks[]>([]);
   protected isLoading = signal(true);
   protected errorMessage = signal<string | null>(null);
+
+  protected searchQuery = signal('');
+  protected hasFilter = computed(() => this.searchQuery().trim().length > 0);
 
   protected isEditingBoardName = signal(false);
   protected editBoardNameValue = signal('');
@@ -44,14 +58,6 @@ export class BoardView implements OnInit, OnDestroy {
 
   private boardId!: string;
   private reloadDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private boardsService: BoardsService,
-    private tasksService: TasksService,
-    private signalRService: SignalRService
-  ) {}
 
   ngOnInit(): void {
     this.boardId = this.route.snapshot.paramMap.get('id')!;
@@ -86,14 +92,14 @@ export class BoardView implements OnInit, OnDestroy {
       error: () => {
         this.errorMessage.set('Could not load board.');
         this.isLoading.set(false);
-      }
+      },
     });
   }
 
   private loadTasksForAllColumns(columns: BoardColumn[], showLoading: boolean): void {
     const columnsWithTasks: ColumnWithTasks[] = columns
       .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map(col => ({ ...col, tasks: [], showAddTask: false }));
+      .map((col) => ({ ...col, tasks: [], showAddTask: false }));
 
     this.columns.set(columnsWithTasks);
 
@@ -103,21 +109,44 @@ export class BoardView implements OnInit, OnDestroy {
     }
 
     let loadedCount = 0;
-    columns.forEach(col => {
+    columns.forEach((col) => {
       this.tasksService.getByColumn(col.id).subscribe({
         next: (tasks) => {
-          this.columns.update(cols =>
-            cols.map(c => c.id === col.id ? { ...c, tasks } : c)
-          );
+          this.columns.update((cols) => cols.map((c) => (c.id === col.id ? { ...c, tasks } : c)));
           loadedCount++;
           if (loadedCount === columns.length && showLoading) this.isLoading.set(false);
         },
         error: () => {
           loadedCount++;
           if (loadedCount === columns.length && showLoading) this.isLoading.set(false);
-        }
+        },
       });
     });
+  }
+
+  // ---- Filter ----
+
+  protected visibleTasks(column: ColumnWithTasks): TaskItem[] {
+    const query = this.searchQuery().trim().toLowerCase();
+    if (!query) return column.tasks;
+    return column.tasks.filter((t) => {
+      const title = t.title.toLowerCase().includes(query);
+      const assignee = t.assigneeName?.toLowerCase().includes(query) ?? false;
+      const labels = t.labels.some((l) => l.name.toLowerCase().includes(query));
+      return title || assignee || labels;
+    });
+  }
+
+  protected isOverdue(dueDate: string): boolean {
+    return new Date(dueDate).getTime() < Date.now();
+  }
+
+  protected initials(name: string): string {
+    return name
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((p) => p.charAt(0).toUpperCase())
+      .join('');
   }
 
   // ---- Board rename/delete ----
@@ -143,23 +172,33 @@ export class BoardView implements OnInit, OnDestroy {
       next: (updated) => {
         this.board.set({ ...b, name: updated.name });
         this.isEditingBoardName.set(false);
+        this.toast.success('Board renamed.');
       },
       error: () => {
-        this.errorMessage.set('Could not rename board.');
+        this.toast.error('Could not rename board.');
         this.isEditingBoardName.set(false);
-      }
+      },
     });
   }
 
-  protected onDeleteBoard(): void {
+  protected async onDeleteBoard(): Promise<void> {
     const b = this.board();
     if (!b) return;
 
-    if (!confirm(`Delete board "${b.name}" and all its columns/tasks? This cannot be undone.`)) return;
+    const ok = await this.confirmService.confirm({
+      title: 'Delete board?',
+      message: `Delete "${b.name}" and all of its columns and tasks? This cannot be undone.`,
+      confirmText: 'Delete board',
+      danger: true,
+    });
+    if (!ok) return;
 
     this.boardsService.delete(b.id).subscribe({
-      next: () => this.router.navigate(['/projects', b.projectId]),
-      error: () => this.errorMessage.set('Could not delete board.')
+      next: () => {
+        this.toast.success('Board deleted.');
+        this.router.navigate(['/projects', b.projectId]);
+      },
+      error: () => this.toast.error('Could not delete board.'),
     });
   }
 
@@ -179,8 +218,8 @@ export class BoardView implements OnInit, OnDestroy {
       },
       error: () => {
         this.isAddingColumn.set(false);
-        this.errorMessage.set('Could not create column.');
-      }
+        this.toast.error('Could not create column.');
+      },
     });
   }
 
@@ -202,26 +241,35 @@ export class BoardView implements OnInit, OnDestroy {
         this.loadBoard(false);
       },
       error: () => {
-        this.errorMessage.set('Could not rename column.');
+        this.toast.error('Could not rename column.');
         this.editingColumnId.set(null);
-      }
+      },
     });
   }
 
-  protected onDeleteColumn(columnId: string): void {
-    if (!confirm('Delete this column and all its tasks? This cannot be undone.')) return;
+  protected async onDeleteColumn(columnId: string): Promise<void> {
+    const ok = await this.confirmService.confirm({
+      title: 'Delete column?',
+      message: 'Delete this column and all of its tasks? This cannot be undone.',
+      confirmText: 'Delete column',
+      danger: true,
+    });
+    if (!ok) return;
 
     this.boardsService.deleteColumn(columnId).subscribe({
-      next: () => this.loadBoard(false),
-      error: () => this.errorMessage.set('Could not delete column.')
+      next: () => {
+        this.toast.success('Column deleted.');
+        this.loadBoard(false);
+      },
+      error: () => this.toast.error('Could not delete column.'),
     });
   }
 
   // ---- Task add/delete ----
 
   protected toggleAddTask(columnId: string): void {
-    this.columns.update(cols =>
-      cols.map(c => c.id === columnId ? { ...c, showAddTask: !c.showAddTask } : c)
+    this.columns.update((cols) =>
+      cols.map((c) => (c.id === columnId ? { ...c, showAddTask: !c.showAddTask } : c)),
     );
     this.setTaskInputValue(columnId, '');
   }
@@ -231,7 +279,7 @@ export class BoardView implements OnInit, OnDestroy {
   }
 
   protected setTaskInputValue(columnId: string, value: string): void {
-    this.taskInputValues.update(v => ({ ...v, [columnId]: value }));
+    this.taskInputValues.update((v) => ({ ...v, [columnId]: value }));
   }
 
   protected onAddTask(event: Event, columnId: string): void {
@@ -239,33 +287,41 @@ export class BoardView implements OnInit, OnDestroy {
     const title = this.getTaskInputValue(columnId).trim();
     if (!title) return;
 
-    this.isAddingTaskFor.update(v => ({ ...v, [columnId]: true }));
+    this.isAddingTaskFor.update((v) => ({ ...v, [columnId]: true }));
 
-    this.tasksService.create(columnId, {
-      title,
-      description: null,
-      dueDate: null,
-      assigneeId: null
-    }).subscribe({
-      next: () => {
-        this.isAddingTaskFor.update(v => ({ ...v, [columnId]: false }));
-        this.setTaskInputValue(columnId, '');
-        this.columns.update(cols =>
-          cols.map(c => c.id === columnId ? { ...c, showAddTask: false } : c)
-        );
-        this.loadBoard(false);
-      },
-      error: () => {
-        this.isAddingTaskFor.update(v => ({ ...v, [columnId]: false }));
-        this.errorMessage.set('Could not create task.');
-      }
-    });
+    this.tasksService
+      .create(columnId, { title, description: null, dueDate: null, assigneeId: null })
+      .subscribe({
+        next: () => {
+          this.isAddingTaskFor.update((v) => ({ ...v, [columnId]: false }));
+          this.setTaskInputValue(columnId, '');
+          this.columns.update((cols) =>
+            cols.map((c) => (c.id === columnId ? { ...c, showAddTask: false } : c)),
+          );
+          this.loadBoard(false);
+        },
+        error: () => {
+          this.isAddingTaskFor.update((v) => ({ ...v, [columnId]: false }));
+          this.toast.error('Could not create task.');
+        },
+      });
   }
 
-  protected onDeleteTask(taskId: string, columnId: string): void {
-    this.tasksService.delete(taskId).subscribe({
-      next: () => this.loadBoard(false),
-      error: () => this.errorMessage.set('Could not delete task.')
+  protected async onDeleteTask(task: TaskItem, columnId: string): Promise<void> {
+    const ok = await this.confirmService.confirm({
+      title: 'Delete task?',
+      message: `Delete "${task.title}"? This cannot be undone.`,
+      confirmText: 'Delete task',
+      danger: true,
+    });
+    if (!ok) return;
+
+    this.tasksService.delete(task.id).subscribe({
+      next: () => {
+        this.toast.success('Task deleted.');
+        this.loadBoard(false);
+      },
+      error: () => this.toast.error('Could not delete task.'),
     });
   }
 
@@ -276,70 +332,64 @@ export class BoardView implements OnInit, OnDestroy {
     const targetColumnId = event.container.id;
 
     if (previousColumnId === targetColumnId) {
-      const column = this.columns().find(c => c.id === targetColumnId);
+      const column = this.columns().find((c) => c.id === targetColumnId);
       if (!column) return;
 
       const reordered = [...column.tasks];
       moveItemInArray(reordered, event.previousIndex, event.currentIndex);
 
-      this.columns.update(cols =>
-        cols.map(c => c.id === targetColumnId ? { ...c, tasks: reordered } : c)
+      this.columns.update((cols) =>
+        cols.map((c) => (c.id === targetColumnId ? { ...c, tasks: reordered } : c)),
       );
 
       const movedTask = reordered[event.currentIndex];
-      this.tasksService.move(movedTask.id, {
-        targetColumnId,
-        newSortOrder: event.currentIndex
-      }).subscribe({
-        error: () => {
-          this.errorMessage.set('Could not save new order.');
-          this.loadBoard(false);
-        }
-      });
-    } else {
-      const sourceColumn = this.columns().find(c => c.id === previousColumnId);
-      if (!sourceColumn) return;
-
-      const movedTask = sourceColumn.tasks[event.previousIndex];
-
-      const updatedColumns = this.columns().map(c => {
-        if (c.id === previousColumnId) {
-          const newTasks = [...c.tasks];
-          newTasks.splice(event.previousIndex, 1);
-          return { ...c, tasks: newTasks };
-        }
-        if (c.id === targetColumnId) {
-          const newTasks = [...c.tasks];
-          newTasks.splice(event.currentIndex, 0, movedTask);
-          return { ...c, tasks: newTasks };
-        }
-        return c;
-      });
-
-      this.columns.set(updatedColumns);
-
-      this.tasksService.move(movedTask.id, {
-        targetColumnId,
-        newSortOrder: event.currentIndex
-      }).subscribe({
-        error: () => {
-          this.errorMessage.set('Could not move task.');
-          this.loadBoard(false);
-        }
-      });
+      this.tasksService
+        .move(movedTask.id, { targetColumnId, newSortOrder: event.currentIndex })
+        .subscribe({
+          error: () => {
+            this.toast.error('Could not save new order.');
+            this.loadBoard(false);
+          },
+        });
+      return;
     }
+
+    const sourceColumn = this.columns().find((c) => c.id === previousColumnId);
+    if (!sourceColumn) return;
+
+    const movedTask = sourceColumn.tasks[event.previousIndex];
+
+    const updatedColumns = this.columns().map((c) => {
+      if (c.id === previousColumnId) {
+        const newTasks = [...c.tasks];
+        newTasks.splice(event.previousIndex, 1);
+        return { ...c, tasks: newTasks };
+      }
+      if (c.id === targetColumnId) {
+        const newTasks = [...c.tasks];
+        newTasks.splice(event.currentIndex, 0, movedTask);
+        return { ...c, tasks: newTasks };
+      }
+      return c;
+    });
+
+    this.columns.set(updatedColumns);
+
+    this.tasksService
+      .move(movedTask.id, { targetColumnId, newSortOrder: event.currentIndex })
+      .subscribe({
+        error: () => {
+          this.toast.error('Could not move task.');
+          this.loadBoard(false);
+        },
+      });
   }
 
   protected getColumnIds(): string[] {
-    return this.columns().map(c => c.id);
+    return this.columns().map((c) => c.id);
   }
 
   protected onOpenTask(task: TaskItem): void {
-    const b = this.board();
-    if (!b) return;
-
-    this.router.navigate(['/tasks', task.id], {
-      state: { projectId: b.projectId, boardId: b.id }
-    });
+    this.router.navigate(['/tasks', task.id]);
   }
 }

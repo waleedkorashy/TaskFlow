@@ -1,39 +1,1164 @@
-// Include theming for Angular Material with `mat.theme()`.
-// This Sass mixin will define CSS variables that are used for styling Angular Material
-// components according to the Material 3 design spec.
-// Learn more about theming and how to use it for your application's
-// custom components at https://material.angular.dev/guide/theming
+// ---------------------------------------------------------------------------
+// TaskFlow Design System — "Paper + movement"
+// A warm, editorial foundation with a single ember accent. Cards exist only
+// for real objects (projects, tasks, dialogs, toasts). Visual hierarchy comes
+// from typography, spacing, dividers and calm surfaces — not gradients,
+// glow-shadows or rounded rectangles everywhere.
+// ---------------------------------------------------------------------------
 @use '@angular/material' as mat;
 
-html {
-  height: 100%;
+$tf-primary: mat.$violet-palette;
+$tf-accent: mat.$azure-palette;
+
+// ---------------------------------------------------------------------------
+// Design tokens
+// ---------------------------------------------------------------------------
+:root {
+  // Brand — ember (terracotta). Used sparingly: primary actions, active nav,
+  // live focus, real-time signal.
+  --tf-primary: #c1532a;
+  --tf-primary-hover: #a8441e;
+  --tf-primary-active: #8a3517;
+  --tf-primary-deep: #8a3517;
+  --tf-primary-soft: #fbf1eb;
+  --tf-primary-soft-strong: #f6e2d4;
+
+  // Status — warm and restrained; no neon.
+  --tf-success: #4c7a54;
+  --tf-success-soft: #eaf2ea;
+  --tf-warning: #8a6216;
+  --tf-warning-soft: #f7efda;
+  --tf-danger: #b3402e;
+  --tf-danger-hover: #9a3525;
+  --tf-danger-soft: #f8e9e4;
+  --tf-info: #2e6b7a;
+  --tf-info-soft: #e7f1ef;
+
+  // Text — warm ink
+  --tf-text-900: #262219;
+  --tf-text-700: #433e33;
+  --tf-text-500: #6c6659;
+  --tf-text-400: #776f62;
+  --tf-text-300: #b0a899;
+  --tf-text-on-primary: #ffffff;
+
+  // Surfaces & lines — paper
+  --tf-bg: #faf9f6;
+  --tf-surface: #ffffff;
+  --tf-surface-2: #f5f2ec;
+  --tf-surface-3: #efebe3;
+  --tf-border: #eae5da;
+  --tf-border-strong: #d8d1c3;
+
+  // Sidebar — warm espresso
+  --tf-sidebar-bg: #211e19;
+  --tf-sidebar-text: #a49d8e;
+  --tf-sidebar-text-active: #ffffff;
+  --tf-sidebar-item-hover: rgba(255, 255, 255, 0.06);
+  --tf-sidebar-item-active-bg: rgba(255, 255, 255, 0.09);
+  --tf-sidebar-border: rgba(255, 255, 255, 0.09);
+
+  // Spacing (4px grid)
+  --tf-space-1: 0.25rem;
+  --tf-space-2: 0.5rem;
+  --tf-space-3: 0.75rem;
+  --tf-space-4: 1rem;
+  --tf-space-5: 1.25rem;
+  --tf-space-6: 1.5rem;
+  --tf-space-8: 2rem;
+  --tf-space-10: 2.5rem;
+  --tf-space-12: 3rem;
+
+  // Radius — deliberate, small. Not everything is equally round.
+  --tf-radius-sm: 6px;   // buttons, inputs, chips
+  --tf-radius-md: 10px;  // meaningful containers (cards, lanes)
+  --tf-radius-lg: 14px;  // dialogs, large panels
+  --tf-radius-pill: 999px; // reserved for pills/avatars only
+
+  // Elevation — rare. Cards are flat with lines; depth is for floating UI.
+  --tf-shadow-sm: 0 1px 2px rgba(66, 56, 40, 0.06);
+  --tf-shadow-md: 0 6px 18px rgba(62, 52, 36, 0.12);
+  --tf-shadow-lg: 0 18px 44px rgba(45, 36, 26, 0.18);
+
+  // Typography — Inter, tight but readable, information-dense
+  --tf-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --tf-fs-xs: 0.75rem;
+  --tf-fs-sm: 0.8125rem;
+  --tf-fs-md: 0.875rem;
+  --tf-fs-base: 0.9375rem;
+  --tf-fs-lg: 1.0625rem;
+  --tf-fs-xl: 1.25rem;
+  --tf-fs-2xl: 1.5rem;
+  --tf-fs-3xl: 1.875rem;
+  --tf-fs-4xl: 2.375rem;
+
+  // Layout
+  --tf-sidebar-width: 252px;
+  --tf-topbar-height: 60px;
+
+  // Motion — quiet and fast
+  --tf-duration: 150ms;
+  --tf-ease: cubic-bezier(0.2, 0.6, 0.2, 1);
+
+  // Material theming keeps MDC internals in the same family.
   @include mat.theme(
     (
       color: (
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
+        primary: $tf-primary,
+        tertiary: $tf-accent,
       ),
-      typography: Roboto,
+      typography: 'Inter',
       density: 0,
     )
   );
+  color-scheme: light;
+}
+
+// ---------------------------------------------------------------------------
+// Reduced motion — a11y first
+// ---------------------------------------------------------------------------
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Base
+// ---------------------------------------------------------------------------
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
 }
 
 body {
-  // Default the application to a light color theme. This can be changed to
-  // `dark` to enable the dark color theme, or to `light dark` to defer to the
-  // user's system settings.
-  color-scheme: light;
-
-  // Set a default background, font and text colors for the application using
-  // Angular Material's system-level CSS variables. Learn more about these
-  // variables at https://material.angular.dev/guide/system-variables
-  background-color: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-body-medium);
-
-  // Reset the user agent margin.
   margin: 0;
-  height: 100%;
+  font-family: var(--tf-font-family);
+  font-size: var(--tf-fs-base);
+  line-height: 1.5;
+  background-color: var(--tf-bg);
+  color: var(--tf-text-900);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
-/* You can add global styles to this file, and also import other style files */
+
+#app-root,
+app-root {
+  display: block;
+  min-height: 100%;
+}
+
+a {
+  color: var(--tf-primary);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: none;
+  }
+}
+
+// Inline text links — clear link affordance, underline + deep accent
+.tf-link-sm,
+.link-row a {
+  font-weight: 600;
+  color: var(--tf-primary-deep);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: rgba(193, 83, 42, 0.35);
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: var(--tf-primary-deep);
+    text-decoration-color: currentColor;
+  }
+}
+
+.tf-link-sm {
+  font-size: var(--tf-fs-sm);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  line-height: 1.25;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+.mat-icon {
+  flex-shrink: 0;
+}
+
+::selection {
+  background: var(--tf-primary-soft-strong);
+}
+
+:focus-visible {
+  outline: 2px solid var(--tf-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.mat-mdc-icon-button:focus-visible {
+  outline-offset: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Buttons — clear hierarchy, flat surfaces, no glow
+// ---------------------------------------------------------------------------
+.tf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tf-space-2);
+  padding: 9px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--tf-radius-sm);
+  font-family: var(--tf-font-family);
+  font-size: var(--tf-fs-md);
+  font-weight: 600;
+  line-height: 1.25;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background-color var(--tf-duration) var(--tf-ease),
+    border-color var(--tf-duration) var(--tf-ease),
+    color var(--tf-duration) var(--tf-ease),
+    transform var(--tf-duration) var(--tf-ease);
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.tf-btn-primary {
+  background: var(--tf-primary);
+  color: var(--tf-text-on-primary);
+
+  &:hover:not(:disabled) {
+    background: var(--tf-primary-hover);
+  }
+
+  &:active:not(:disabled) {
+    background: var(--tf-primary-active);
+  }
+}
+
+.tf-btn-secondary {
+  background: var(--tf-surface);
+  border-color: var(--tf-border-strong);
+  color: var(--tf-text-700);
+
+  &:hover:not(:disabled) {
+    background: var(--tf-surface-2);
+    border-color: var(--tf-border-strong);
+    color: var(--tf-text-900);
+  }
+}
+
+.tf-btn-soft {
+  background: var(--tf-primary-soft);
+  color: var(--tf-primary-deep);
+
+  &:hover:not(:disabled) {
+    background: var(--tf-primary-soft-strong);
+    color: var(--tf-primary-active);
+  }
+}
+
+.tf-btn-ghost {
+  background: transparent;
+  color: var(--tf-text-500);
+
+  &:hover:not(:disabled) {
+    background: var(--tf-surface-3);
+    color: var(--tf-text-900);
+  }
+}
+
+.tf-btn-danger {
+  background: var(--tf-danger);
+  color: #ffffff;
+
+  &:hover:not(:disabled) {
+    background: var(--tf-danger-hover);
+  }
+}
+
+.tf-btn-danger-ghost {
+  background: transparent;
+  color: var(--tf-danger);
+
+  &:hover:not(:disabled) {
+    background: var(--tf-danger-soft);
+    color: var(--tf-danger-hover);
+  }
+}
+
+.tf-btn-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--tf-primary-deep);
+  font-size: var(--tf-fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--tf-primary-active);
+    text-decoration: underline;
+  }
+}
+
+.tf-btn-block {
+  width: 100%;
+}
+
+.tf-btn-sm {
+  padding: 6px 11px;
+  font-size: var(--tf-fs-sm);
+}
+
+.tf-btn-lg {
+  padding: 11px 22px;
+  font-size: var(--tf-fs-base);
+}
+
+// ---------------------------------------------------------------------------
+// Icon button — quiet; color only when destructive
+// ---------------------------------------------------------------------------
+.tf-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: var(--tf-radius-sm);
+  background: transparent;
+  color: var(--tf-text-400);
+  cursor: pointer;
+  transition: background-color var(--tf-duration) var(--tf-ease),
+    color var(--tf-duration) var(--tf-ease);
+
+  &:hover:not(:disabled) {
+    background: var(--tf-surface-3);
+    color: var(--tf-text-900);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .mat-icon {
+    font-size: 19px;
+    width: 19px;
+    height: 19px;
+  }
+}
+
+.tf-icon-btn-danger {
+  &:hover:not(:disabled) {
+    background: var(--tf-danger-soft);
+    color: var(--tf-danger);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Form controls — calm, warm, direct focus
+// ---------------------------------------------------------------------------
+.tf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--tf-space-4);
+}
+
+.tf-label {
+  font-size: var(--tf-fs-sm);
+  font-weight: 600;
+  color: var(--tf-text-700);
+}
+
+.tf-input,
+.tf-select,
+.tf-textarea {
+  width: 100%;
+  padding: 9px 12px;
+  font-family: var(--tf-font-family);
+  font-size: var(--tf-fs-md);
+  color: var(--tf-text-900);
+  background: var(--tf-surface);
+  border: 1px solid var(--tf-border-strong);
+  border-radius: var(--tf-radius-sm);
+  transition: border-color var(--tf-duration) var(--tf-ease),
+    box-shadow var(--tf-duration) var(--tf-ease);
+
+  &::placeholder {
+    color: var(--tf-text-400);
+  }
+
+  &:hover:not(:disabled):not(:focus) {
+    border-color: var(--tf-text-400);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--tf-primary);
+    box-shadow: 0 0 0 3px rgba(193, 83, 42, 0.14);
+  }
+
+  &:disabled {
+    background: var(--tf-surface-3);
+    color: var(--tf-text-500);
+    cursor: not-allowed;
+  }
+}
+
+.tf-textarea {
+  resize: vertical;
+  min-height: 96px;
+  line-height: 1.5;
+}
+
+.tf-input-invalid {
+  border-color: var(--tf-danger) !important;
+
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(179, 64, 46, 0.12);
+  }
+}
+
+.tf-error-text {
+  font-size: var(--tf-fs-xs);
+  font-weight: 500;
+  color: var(--tf-danger);
+}
+
+.tf-hint {
+  font-size: var(--tf-fs-xs);
+  color: var(--tf-text-400);
+}
+
+.tf-field-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--tf-space-2);
+}
+
+.tf-input-group {
+  position: relative;
+
+  .mat-icon {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 19px;
+    color: var(--tf-text-400);
+    pointer-events: none;
+  }
+
+  .tf-input,
+  .tf-select {
+    padding-left: 38px;
+  }
+
+  &.tf-input-group-right .tf-input,
+  &.tf-input-group-right .tf-select {
+    padding-right: 38px;
+    padding-left: 12px;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Surfaces — cards are objects, not default chrome
+// ---------------------------------------------------------------------------
+.tf-card {
+  background: var(--tf-surface);
+  border: 1px solid var(--tf-border);
+  border-radius: var(--tf-radius-md);
+  padding: var(--tf-space-5);
+}
+
+.tf-card-flat {
+  background: var(--tf-surface);
+  border: 1px solid var(--tf-border);
+  border-radius: var(--tf-radius-md);
+}
+
+.tf-card-hover {
+  transition: box-shadow var(--tf-duration) var(--tf-ease),
+    border-color var(--tf-duration) var(--tf-ease),
+    transform var(--tf-duration) var(--tf-ease);
+
+  &:hover {
+    box-shadow: var(--tf-shadow-sm);
+    border-color: var(--tf-border-strong);
+    transform: translateY(-1px);
+  }
+}
+
+.tf-panel {
+  background: var(--tf-surface-2);
+  border-radius: var(--tf-radius-md);
+  padding: var(--tf-space-4);
+}
+
+.tf-card-title {
+  font-size: var(--tf-fs-base);
+  font-weight: 700;
+  color: var(--tf-text-900);
+}
+
+.tf-card-subtitle {
+  font-size: var(--tf-fs-sm);
+  color: var(--tf-text-500);
+  margin-top: 2px;
+}
+
+// ---------------------------------------------------------------------------
+// Badges, chips, tags — small and quiet, nothing glowey
+// ---------------------------------------------------------------------------
+.tf-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--tf-radius-pill);
+  font-size: var(--tf-fs-xs);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.tf-pill-primary {
+  background: var(--tf-primary-soft);
+  color: var(--tf-primary-deep);
+}
+
+.tf-pill-success {
+  background: var(--tf-success-soft);
+  color: var(--tf-success);
+}
+
+.tf-pill-warning {
+  background: var(--tf-warning-soft);
+  color: var(--tf-warning);
+}
+
+.tf-pill-danger {
+  background: var(--tf-danger-soft);
+  color: var(--tf-danger);
+}
+
+.tf-pill-info {
+  background: var(--tf-info-soft);
+  color: var(--tf-info);
+}
+
+.tf-pill-neutral {
+  background: var(--tf-surface-3);
+  color: var(--tf-text-500);
+}
+
+.tf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: var(--tf-radius-sm);
+  font-size: var(--tf-fs-xs);
+  font-weight: 600;
+  background: var(--tf-surface-2);
+  border: 1px solid var(--tf-border);
+  color: var(--tf-text-700);
+}
+
+.tf-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Avatar — neutral paper tile by default
+// ---------------------------------------------------------------------------
+.tf-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: var(--tf-fs-sm);
+  font-weight: 700;
+  color: var(--tf-text-700);
+  background: var(--tf-surface-3);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.tf-avatar-accent {
+  background: var(--tf-primary);
+  color: var(--tf-text-on-primary);
+}
+
+.tf-avatar-sm {
+  width: 26px;
+  height: 26px;
+  font-size: var(--tf-fs-xs);
+}
+
+.tf-avatar-lg {
+  width: 48px;
+  height: 48px;
+  font-size: var(--tf-fs-lg);
+}
+
+// ---------------------------------------------------------------------------
+// Empty / loading states
+// ---------------------------------------------------------------------------
+.tf-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tf-space-2);
+  padding: var(--tf-space-10) var(--tf-space-6);
+  text-align: center;
+  color: var(--tf-text-500);
+
+  .mat-icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    margin-bottom: var(--tf-space-2);
+    color: var(--tf-text-300);
+  }
+
+  h3 {
+    font-size: var(--tf-fs-lg);
+    color: var(--tf-text-900);
+  }
+
+  p {
+    font-size: var(--tf-fs-md);
+    max-width: 340px;
+  }
+}
+
+// Full-page empty state (404 etc.)
+.not-found {
+  display: grid;
+  place-items: center;
+  min-height: min(70vh, 560px);
+  padding: var(--tf-space-6);
+}
+
+.tf-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--tf-surface-3);
+  border-radius: var(--tf-radius-sm);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    animation: tf-shimmer 1.6s infinite;
+  }
+}
+
+@keyframes tf-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Page scaffolding — typography does the work, sections are open paper
+// ---------------------------------------------------------------------------
+.tf-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tf-space-6);
+  max-width: 1160px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--tf-space-8);
+}
+
+.tf-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--tf-space-4);
+  flex-wrap: wrap;
+}
+
+.tf-page-title {
+  font-size: var(--tf-fs-2xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.tf-page-subtitle {
+  font-size: var(--tf-fs-base);
+  color: var(--tf-text-500);
+  margin-top: 4px;
+}
+
+.tf-section-title {
+  font-size: var(--tf-fs-lg);
+  font-weight: 700;
+  color: var(--tf-text-900);
+}
+
+.tf-link {
+  color: var(--tf-primary-deep);
+  font-size: var(--tf-fs-sm);
+  font-weight: 600;
+
+  &:hover {
+    color: var(--tf-primary-active);
+    text-decoration: underline;
+  }
+}
+
+.tf-kicker {
+  font-size: var(--tf-fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tf-text-400);
+}
+
+// ---------------------------------------------------------------------------
+// Toasts
+// ---------------------------------------------------------------------------
+.tf-toast-host {
+  position: fixed;
+  bottom: var(--tf-space-6);
+  right: var(--tf-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--tf-space-2);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.tf-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tf-space-3);
+  min-width: 300px;
+  max-width: 380px;
+  padding: 11px 14px;
+  border-radius: var(--tf-radius-md);
+  background: #2a2620;
+  color: #f6f3ec;
+  box-shadow: var(--tf-shadow-lg);
+  pointer-events: auto;
+  animation: tf-toast-in 200ms var(--tf-ease);
+
+  .mat-icon {
+    font-size: 19px;
+    width: 19px;
+    height: 19px;
+  }
+
+  .tf-toast-msg {
+    flex: 1;
+    font-size: var(--tf-fs-sm);
+    font-weight: 500;
+    line-height: 1.45;
+    word-break: break-word;
+  }
+
+  .tf-toast-close {
+    margin: -6px -8px -6px 0;
+    color: #8b8475;
+
+    &:hover {
+      color: #f6f3ec;
+      background: rgba(255, 255, 255, 0.08);
+    }
+  }
+}
+
+.tf-toast-success .tf-toast-icon {
+  color: #8fbb92;
+}
+
+.tf-toast-error .tf-toast-icon {
+  color: #e88b7a;
+}
+
+.tf-toast-warning .tf-toast-icon {
+  color: #d9b36a;
+}
+
+.tf-toast-info .tf-toast-icon {
+  color: #86b8c2;
+}
+
+@keyframes tf-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Confirm dialog — centered, bottom sheet on small screens
+// ---------------------------------------------------------------------------
+.tf-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 25, 17, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--tf-space-4);
+  z-index: 1002;
+  animation: tf-fade-in 160ms var(--tf-ease);
+}
+
+.tf-dialog {
+  width: min(420px, 100%);
+  background: var(--tf-surface);
+  border: 1px solid var(--tf-border);
+  border-radius: var(--tf-radius-lg);
+  box-shadow: var(--tf-shadow-lg);
+  padding: var(--tf-space-6);
+  animation: tf-dialog-up 200ms var(--tf-ease);
+}
+
+.tf-dialog-title {
+  font-size: var(--tf-fs-lg);
+  font-weight: 700;
+}
+
+.tf-dialog-message {
+  margin-top: var(--tf-space-2);
+  font-size: var(--tf-fs-md);
+  color: var(--tf-text-500);
+  line-height: 1.5;
+}
+
+.tf-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--tf-space-2);
+  margin-top: var(--tf-space-6);
+}
+
+@keyframes tf-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes tf-dialog-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Data rows, dividers, links
+// ---------------------------------------------------------------------------
+.tf-divider {
+  height: 1px;
+  background: var(--tf-border);
+  border: none;
+  margin: var(--tf-space-4) 0;
+}
+
+.tf-muted {
+  color: var(--tf-text-500);
+}
+
+.tf-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ---------------------------------------------------------------------------
+// Alerts — quiet contextual banners, icon only when it helps
+// ---------------------------------------------------------------------------
+.tf-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tf-space-2);
+  padding: 10px 13px;
+  border-radius: var(--tf-radius-sm);
+  font-size: var(--tf-fs-sm);
+  font-weight: 500;
+
+  .mat-icon {
+    margin-top: 1px;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.tf-alert-error {
+  background: var(--tf-danger-soft);
+  color: var(--tf-danger);
+}
+
+.tf-alert-info {
+  background: var(--tf-info-soft);
+  color: var(--tf-info);
+}
+
+.tf-alert-success {
+  background: var(--tf-success-soft);
+  color: var(--tf-success);
+}
+
+// ---------------------------------------------------------------------------
+// Auth pages — warm editorial panel, task-flow motif, no gradient blobs
+// ---------------------------------------------------------------------------
+.auth-page {
+  display: flex;
+  min-height: 100vh;
+  background: var(--tf-bg);
+}
+
+.auth-brand-panel {
+  position: relative;
+  flex: 1 1 46%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--tf-space-8) var(--tf-space-10);
+  color: var(--tf-text-900);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 33px,
+      rgba(86, 74, 52, 0.045) 34px
+    ),
+    var(--tf-surface-2);
+  overflow: hidden;
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--tf-space-3);
+    color: var(--tf-text-900);
+    text-decoration: none;
+
+    img {
+      width: 40px;
+      height: 40px;
+      color: var(--tf-text-900);
+    }
+
+    .brand-name {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+
+      span {
+        color: var(--tf-primary);
+      }
+    }
+  }
+
+  .auth-tagline {
+    position: relative;
+    z-index: 1;
+
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      line-height: 1.14;
+      letter-spacing: -0.025em;
+      max-width: 520px;
+    }
+
+    p {
+      margin-top: var(--tf-space-4);
+      font-size: var(--tf-fs-lg);
+      color: var(--tf-text-500);
+      max-width: 460px;
+    }
+  }
+
+  .auth-features {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--tf-space-3);
+
+    .auth-feature {
+      display: flex;
+      align-items: center;
+      gap: var(--tf-space-3);
+      font-size: var(--tf-fs-md);
+      font-weight: 500;
+      color: var(--tf-text-700);
+
+      .mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        color: var(--tf-primary);
+      }
+    }
+  }
+
+  .auth-motif {
+    position: absolute;
+    right: -56px;
+    bottom: -70px;
+    width: 360px;
+    height: 360px;
+    color: var(--tf-primary);
+    opacity: 0.1;
+    pointer-events: none;
+  }
+}
+
+.auth-form-container {
+  flex: 1 1 54%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--tf-space-6);
+
+  .auth-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--tf-surface);
+    border: 1px solid var(--tf-border);
+    border-radius: var(--tf-radius-lg);
+    padding: var(--tf-space-8);
+
+    .auth-card-brand {
+      display: none;
+    }
+
+    .auth-card-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .auth-card-subtitle {
+      font-size: var(--tf-fs-md);
+      color: var(--tf-text-500);
+      margin-bottom: var(--tf-space-6);
+    }
+
+    .auth-card-footer,
+    .link-row {
+      margin-top: var(--tf-space-4);
+      padding-top: var(--tf-space-4);
+      border-top: 1px solid var(--tf-border);
+      text-align: center;
+      font-size: var(--tf-fs-sm);
+      color: var(--tf-text-500);
+    }
+  }
+}
+
+@media (max-width: 880px) {
+  .auth-brand-panel {
+    display: none;
+  }
+  .auth-form-container .auth-card {
+    max-width: 440px;
+
+    .auth-card-brand {
+      display: flex;
+      justify-content: center;
+      margin-bottom: var(--tf-space-6);
+
+      img {
+        width: 44px;
+        height: 44px;
+        color: var(--tf-text-900);
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Responsive helpers
+// ---------------------------------------------------------------------------
+@media (max-width: 720px) {
+  .tf-page {
+    padding: var(--tf-space-4);
+  }
+}
+
+@media (max-width: 480px) {
+  .tf-toast-host {
+    right: var(--tf-space-4);
+    left: var(--tf-space-4);
+  }
+  .tf-toast {
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+  }
+
+  .auth-form-container {
+    padding: var(--tf-space-4);
+
+    .auth-card {
+      padding: var(--tf-space-5);
+    }
+  }
+}

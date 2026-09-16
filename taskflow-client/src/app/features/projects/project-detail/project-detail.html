@@ -1,112 +1,191 @@
-<div class="page">
-  <header class="topbar">
-    <a routerLink="/projects" class="back-link">← All Projects</a>
-    <div class="title-row">
-      @if (isEditingName()) {
-      <input class="name-input" [value]="editNameValue()" (input)="editNameValue.set($any($event.target).value)"
-        (blur)="saveName()" (keydown.enter)="saveName()" />
-      } @else if (project(); as p) {
-      <h1 (click)="startEditName()">{{ p.name }}</h1>
-      }
-      <button class="delete-project-btn" (click)="onDeleteProject()">Delete Project</button>
-    </div>
+<div class="tf-page">
+  <header class="project-header">
+    <a class="back-link" [routerLink]="['/projects']">
+      <mat-icon aria-hidden="true">arrow_back</mat-icon>
+      <span>Projects</span>
+    </a>
+
+    @if (project(); as p) {
+      <div class="title-row">
+        <div class="title-block">
+          @if (isEditingName()) {
+            <input
+              class="tf-input title-input"
+              [value]="editNameValue()"
+              (input)="editNameValue.set($any($event.target).value)"
+              (blur)="saveName()"
+              (keydown.enter)="saveName()"
+              aria-label="Project name"
+            />
+          } @else {
+            <h1 class="tf-page-title project-title" (click)="startEditName()">
+              {{ p.name }}
+              @if (isOwner()) {
+                <button type="button" class="tf-icon-btn" (click)="startEditName()" aria-label="Edit project name" title="Edit name">
+                  <mat-icon aria-hidden="true">edit</mat-icon>
+                </button>
+              }
+            </h1>
+          }
+          <p class="project-meta">
+            Created {{ p.createdAt | date: 'MMM d, y' }}
+            <span aria-hidden="true">·</span>
+            {{ members().length }} member{{ members().length === 1 ? '' : 's' }}
+          </p>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="tf-btn tf-btn-secondary" (click)="showMembersPanel.set(!showMembersPanel())">
+            Members
+          </button>
+          @if (isOwner()) {
+            <button type="button" class="tf-btn tf-btn-danger-ghost" (click)="onDeleteProject()">Delete project</button>
+          } @else {
+            <button type="button" class="tf-btn tf-btn-ghost" (click)="onLeaveProject()">Leave project</button>
+          }
+        </div>
+      </div>
+    }
   </header>
 
-  <main>
-    @if (project(); as p) {
-    @if (p.description) {
-    <p class="description">{{ p.description }}</p>
-    }
-    }
-    <div class="members-section">
-      <div class="section-header">
-        <h2>Members</h2>
-        <button (click)="showMembersPanel.set(!showMembersPanel())">
-          {{ showMembersPanel() ? 'Hide' : 'Manage' }}
-        </button>
-      </div>
+  @if (errorMessage()) {
+    <div class="tf-alert tf-alert-error" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      {{ errorMessage() }}
+    </div>
+  }
 
-      @if (showMembersPanel()) {
-      <div class="members-panel">
-        <div class="member-list">
-          @for (member of members(); track member.userId) {
-          <div class="member-row">
-            <span>{{ member.fullName }} <span class="member-email">({{ member.email }})</span></span>
-            <span class="member-role">{{ member.role }}</span>
-            @if (isOwner() && member.role !== 'Admin') {
-            <button class="remove-btn" (click)="onRemoveMember(member.userId)">Remove</button>
+  @if (isLoading()) {
+    <div class="project-skeleton">
+      <div class="tf-skeleton"></div>
+      <div class="tf-skeleton"></div>
+      <div class="tf-skeleton"></div>
+    </div>
+  } @else if (project()) {
+    <div class="project-layout">
+      <section class="boards-section">
+        <div class="section-heading">
+          <div>
+            <h2 class="tf-section-title">Boards</h2>
+            <p class="section-subtitle">{{ boardCount() }} {{ boardCount() === 1 ? 'board' : 'boards' }} in this project</p>
+          </div>
+          <button type="button" class="tf-btn tf-btn-soft tf-btn-sm" (click)="showCreateForm.set(!showCreateForm())">
+            {{ showCreateForm() ? 'Cancel' : 'New board' }}
+          </button>
+        </div>
+
+        @if (showCreateForm()) {
+          <form class="tf-card create-card" (submit)="onCreateSubmit($event)">
+            <div class="tf-field">
+              <label class="tf-label" for="boardName">Board name</label>
+              <input
+                id="boardName"
+                class="tf-input"
+                type="text"
+                placeholder="e.g. Sprint 14"
+                [class.tf-input-invalid]="createForm.name().touched() && createForm.name().invalid()"
+                [formField]="createForm.name"
+              />
+              @if (createForm.name().touched() && createForm.name().invalid()) {
+                <span class="tf-error-text">{{ createForm.name().errors()[0]?.message }}</span>
+              }
+            </div>
+            <div class="create-actions">
+              <button type="button" class="tf-btn tf-btn-ghost" (click)="showCreateForm.set(false)">Cancel</button>
+              <button type="submit" class="tf-btn tf-btn-primary" [disabled]="isCreating()">
+                {{ isCreating() ? 'Creating…' : 'Create board' }}
+              </button>
+            </div>
+          </form>
+        }
+
+        @if (boards().length === 0) {
+          <div class="tf-card">
+            <div class="tf-empty">
+              <mat-icon aria-hidden="true">view_column</mat-icon>
+              <h3>No boards yet</h3>
+              <p>Boards organize tasks into columns for a specific sprint or flow.</p>
+            </div>
+          </div>
+        } @else {
+          <div class="board-grid">
+            @for (board of boards(); track board.id) {
+              <button type="button" class="tf-card tf-card-hover board-card" (click)="onOpenBoard(board)">
+                <span class="board-name">{{ board.name }}</span>
+                <span class="board-meta">
+                  {{ board.columns.length }} {{ board.columns.length === 1 ? 'column' : 'columns' }}
+                  <span aria-hidden="true">·</span>
+                  Created {{ board.createdAt | date: 'MMM y' }}
+                </span>
+              </button>
             }
           </div>
+        }
+      </section>
+
+      <aside class="members-panel" [class.members-open]="showMembersPanel()">
+        <div class="tf-card members-card">
+          <h3 class="side-title">Members</h3>
+
+          @if (isOwner()) {
+            <form class="invite-form" (submit)="onInvite($event)">
+              <input
+                class="tf-input"
+                type="email"
+                placeholder="teammate@email.com"
+                [value]="inviteEmail()"
+                (input)="inviteEmail.set($any($event.target).value)"
+                aria-label="Invite by email"
+              />
+              <button type="submit" class="tf-btn tf-btn-primary tf-btn-sm" [disabled]="isInviting() || !inviteEmail().trim()">
+                {{ isInviting() ? 'Sending…' : 'Invite' }}
+              </button>
+            </form>
+            @if (inviteMessage()) {
+              <p class="invite-message">{{ inviteMessage() }}</p>
+            }
+          }
+
+          <ul class="member-list">
+            @for (member of members(); track member.userId) {
+              <li class="member-row">
+                <span class="tf-avatar member-avatar" aria-hidden="true">{{ initials(member.fullName) }}</span>
+                <div class="member-info">
+                  <span class="member-name">{{ member.fullName }}</span>
+                  <span class="member-role">{{ member.role }}</span>
+                </div>
+                @if (isOwner() && member.role !== 'Owner') {
+                  <button
+                    type="button"
+                    class="tf-icon-btn tf-icon-btn-danger member-remove"
+                    (click)="onRemoveMember(member)"
+                    [attr.aria-label]="'Remove ' + member.fullName"
+                    title="Remove member"
+                  >
+                    <mat-icon aria-hidden="true">close</mat-icon>
+                  </button>
+                }
+              </li>
+            }
+          </ul>
+
+          @if (isOwner() && pendingInvitations().length > 0) {
+            <div class="pending-section">
+              <h4 class="pending-title">Pending invitations</h4>
+              <ul class="member-list">
+                @for (invitation of pendingInvitations(); track invitation.id) {
+                  <li class="member-row pending-row">
+                    <span class="member-email">{{ invitation.email }}</span>
+                    <button type="button" class="tf-btn tf-btn-link tf-btn-sm" (click)="onRevokeInvitation(invitation.id)">
+                      Revoke
+                    </button>
+                  </li>
+                }
+              </ul>
+            </div>
           }
         </div>
-
-        @if (isOwner()) {
-        <form class="invite-form" (submit)="onInvite($event)">
-          <input type="email" placeholder="Invite by email" [value]="inviteEmail()"
-            (input)="inviteEmail.set($any($event.target).value)" />
-          <button type="submit" [disabled]="isInviting()">
-            {{ isInviting() ? 'Sending...' : 'Invite' }}
-          </button>
-        </form>
-
-        @if (inviteMessage()) {
-        <p class="invite-message">{{ inviteMessage() }}</p>
-        }
-
-        @if (pendingInvitations().length > 0) {
-        <h4>Pending invitations</h4>
-        <div class="pending-list">
-          @for (inv of pendingInvitations(); track inv.id) {
-          <div class="pending-row">
-            <span>{{ inv.email }}</span>
-            <button class="remove-btn" (click)="onRevokeInvitation(inv.id)">Revoke</button>
-          </div>
-          }
-        </div>
-        }
-        } @else {
-        <button class="leave-btn" (click)="onLeaveProject()">Leave Project</button>
-        }
-      </div>
-      }
+      </aside>
     </div>
-
-    <div class="section-header">
-      <h2>Boards</h2>
-      <button (click)="showCreateForm.set(!showCreateForm())">
-        {{ showCreateForm() ? 'Cancel' : '+ New Board' }}
-      </button>
-    </div>
-
-    @if (showCreateForm()) {
-    <form class="create-form" (submit)="onCreateSubmit($event)">
-      <input type="text" placeholder="Board name" [formField]="createForm.name" />
-      @if (createForm.name().touched() && createForm.name().invalid()) {
-      <span class="error">{{ createForm.name().errors()[0]?.message }}</span>
-      }
-      <button type="submit" [disabled]="isCreating()">
-        {{ isCreating() ? 'Creating...' : 'Create' }}
-      </button>
-    </form>
-    }
-
-    @if (errorMessage()) {
-    <div class="error-banner">{{ errorMessage() }}</div>
-    }
-
-    @if (isLoading()) {
-    <p>Loading boards...</p>
-    } @else if (boards().length === 0) {
-    <p class="empty-state">No boards yet — create your first one above.</p>
-    } @else {
-    <div class="board-grid">
-      @for (board of boards(); track board.id) {
-      <div class="board-card" (click)="onOpenBoard(board)">
-        <h3>{{ board.name }}</h3>
-        <span class="meta">{{ board.columns.length }} column{{ board.columns.length === 1 ? '' : 's' }}</span>
-      </div>
-      }
-    </div>
-    }
-  </main>
+  }
 </div>

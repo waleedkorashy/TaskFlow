@@ -1,0 +1,38 @@
+<div class="auth-page">
+  <div class="auth-brand-panel">
+    <a class="brand" routerLink="/login">
+      <img ngSrc="/logo.svg" width="40" height="40" priority alt="TaskFlow logo" />
+      <span class="brand-name">Task<span>Flow</span></span>
+    </a>
+
+    <div class="auth-tagline">
+      <h1>A calm, focused place to move work forward.</h1>
+      <p>TaskFlow keeps your projects and boards organized — without the noise.</p>
+    </div>
+
+    <div class="auth-features">
+      <div class="auth-feature"><mat-icon aria-hidden="true">view_kanban</mat-icon> Drag-and-drop kanban boards</div>
+      <div class="auth-feature"><mat-icon aria-hidden="true">bolt</mat-icon> Live collaboration with your team</div>
+      <div class="auth-feature"><mat-icon aria-hidden="true">label</mat-icon> Labels, due dates and comments</div>
+    </div>
+
+    <svg class="auth-motif" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+      <rect x="5" y="27" width="15" height="17" rx="4" fill="currentColor" opacity="0.45"/>
+      <rect x="14" y="18" width="15" height="17" rx="4" fill="currentColor" opacity="0.72"/>
+      <rect x="23" y="9" width="15" height="17" rx="4" fill="currentColor"/>
+    </svg>
+  </div>
+
+  <div class="auth-form-container">
+    <div class="auth-card">
+      <a class="auth-card-brand" routerLink="/login" aria-label="TaskFlow">
+        <img ngSrc="/logo.svg" width="44" height="44" alt="" />
+      </a>
+      <h1 class="auth-card-title">{{ title() }}</h1>
+      @if (subtitle()) {
+        <p class="auth-card-subtitle">{{ subtitle() }}</p>
+      }
+      <ng-content />
+    </div>
+  </div>
+</div>

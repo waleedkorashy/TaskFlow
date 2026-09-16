@@ -10,7 +10,7 @@ export class SignalRService {
   private hubConnection: signalR.HubConnection | null = null;
   private currentBoardId: string | null = null;
 
-  connectionState = signal<'disconnected' | 'connecting' | 'connected'>('disconnected');
+  connectionState = signal<'disconnected' | 'connecting' | 'connected' | 'reconnecting'>('disconnected');
 
   private handlers: VoidHandler[] = [];
 
@@ -37,7 +37,7 @@ export class SignalRService {
       });
     });
 
-    this.hubConnection.onreconnecting(() => this.connectionState.set('connecting'));
+    this.hubConnection.onreconnecting(() => this.connectionState.set('reconnecting'));
     this.hubConnection.onreconnected(() => {
       this.connectionState.set('connected');
       if (this.currentBoardId) {
