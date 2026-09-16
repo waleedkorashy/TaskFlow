@@ -1,3 +1,5 @@
-﻿namespace TaskFlow.Api.DTOs.Boards;
+﻿using System.ComponentModel.DataAnnotations;
 
-public record CreateBoardRequest(string Name);
+namespace TaskFlow.Api.DTOs.Boards;
+
+public record CreateBoardRequest([Required, StringLength(100, MinimumLength = 1)] string Name);

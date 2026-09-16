@@ -1,3 +1,5 @@
-﻿namespace TaskFlow.Api.DTOs.Auth;
+﻿using System.ComponentModel.DataAnnotations;
 
-public record ResendOtpRequest(string Email);
+namespace TaskFlow.Api.DTOs.Auth;
+
+public record ResendOtpRequest([Required, EmailAddress, StringLength(256)] string Email);

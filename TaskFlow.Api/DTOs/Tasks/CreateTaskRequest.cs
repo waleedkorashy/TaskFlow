@@ -1,3 +1,9 @@
-﻿namespace TaskFlow.Api.DTOs.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
-public record CreateTaskRequest(string Title, string? Description, DateTime? DueDate, Guid? AssigneeId);
+namespace TaskFlow.Api.DTOs.Tasks;
+
+public record CreateTaskRequest(
+    [Required, StringLength(200, MinimumLength = 1)] string Title,
+    string? Description,
+    DateTime? DueDate,
+    Guid? AssigneeId);

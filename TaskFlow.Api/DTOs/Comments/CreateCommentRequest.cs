@@ -1,3 +1,5 @@
-﻿namespace TaskFlow.Api.DTOs.Comments;
+﻿using System.ComponentModel.DataAnnotations;
 
-public record CreateCommentRequest(string Content);
+namespace TaskFlow.Api.DTOs.Comments;
+
+public record CreateCommentRequest([Required, StringLength(5000, MinimumLength = 1)] string Content);

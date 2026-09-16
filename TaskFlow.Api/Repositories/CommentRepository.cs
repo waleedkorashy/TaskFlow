@@ -19,6 +19,9 @@ public class CommentRepository : GenericRepository<Comment>, ICommentRepository
 
     public async Task<Comment?> GetWithUserAsync(Guid id)
     {
-        return await DbSet.Include(c => c.User).FirstOrDefaultAsync(c => c.Id == id);
+        return await DbSet
+            .Include(c => c.User)
+            .Include(c => c.TaskItem).ThenInclude(t => t.BoardColumn).ThenInclude(c => c.Board).ThenInclude(b => b.Project).ThenInclude(p => p.Members)
+            .FirstOrDefaultAsync(c => c.Id == id);
     }
 }

@@ -23,4 +23,10 @@ public class BoardRepository : GenericRepository<Board>, IBoardRepository
             .Include(b => b.Project).ThenInclude(p => p.Members)
             .FirstOrDefaultAsync(b => b.Id == id);
     }
+
+    public async Task<bool> HasAccessAsync(Guid boardId, Guid userId)
+    {
+        return await DbSet.AnyAsync(b => b.Id == boardId &&
+            (b.Project.OwnerId == userId || b.Project.Members.Any(m => m.UserId == userId)));
+    }
 }

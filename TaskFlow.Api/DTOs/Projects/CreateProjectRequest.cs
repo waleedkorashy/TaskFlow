@@ -1,3 +1,7 @@
-﻿namespace TaskFlow.Api.DTOs.Projects;
+﻿using System.ComponentModel.DataAnnotations;
 
-public record CreateProjectRequest(string Name, string? Description);
+namespace TaskFlow.Api.DTOs.Projects;
+
+public record CreateProjectRequest(
+    [Required, StringLength(100, MinimumLength = 1)] string Name,
+    string? Description);

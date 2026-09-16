@@ -1,4 +1,5 @@
 ﻿using TaskFlow.Api.Common.Exceptions;
+using TaskFlow.Api.DTOs.Labels;
 using TaskFlow.Api.DTOs.Tasks;
 using TaskFlow.Api.Entities;
 using TaskFlow.Api.Repositories;
@@ -19,14 +20,33 @@ public class TaskService : ITaskService
     }
 
     private static TaskResponse ToResponse(TaskItem t) => new(
-        t.Id, t.BoardColumnId, t.Title, t.Description, t.SortOrder,
-        t.DueDate, t.AssigneeId, t.Assignee?.FullName, t.CreatedAt
+        t.Id,
+        t.BoardColumnId,
+        t.BoardColumn.BoardId,
+        t.BoardColumn.Board.ProjectId,
+        t.Title,
+        t.Description,
+        t.SortOrder,
+        t.DueDate,
+        t.AssigneeId,
+        t.Assignee?.FullName,
+        t.CreatedAt,
+        t.Labels.Select(l => new LabelResponse(l.Id, l.ProjectId, l.Name, l.ColorHex)).ToList()
     );
 
     private static void EnsureAccess(Project project, Guid userId)
     {
         bool hasAccess = project.OwnerId == userId || project.Members.Any(m => m.UserId == userId);
         if (!hasAccess) throw new ForbiddenException("You do not have access to this project.");
+    }
+
+    private static void EnsureAssigneeValid(Project project, Guid? assigneeId)
+    {
+        if (assigneeId == null) return;
+
+        bool isMember = project.OwnerId == assigneeId || project.Members.Any(m => m.UserId == assigneeId);
+        if (!isMember)
+            throw new ForbiddenException("The assignee must be a member of this project.");
     }
 
     public async Task<List<TaskResponse>> GetTasksAsync(Guid columnId, Guid userId)
@@ -52,6 +72,7 @@ public class TaskService : ITaskService
         var column = await _columnRepository.GetWithTasksAndAccessDataAsync(columnId)
             ?? throw new NotFoundException("Column not found.");
         EnsureAccess(column.Board.Project, userId);
+        EnsureAssigneeValid(column.Board.Project, request.AssigneeId);
 
         int nextOrder = column.Tasks.Count == 0 ? 0 : column.Tasks.Max(t => t.SortOrder) + 1;
 
@@ -80,6 +101,7 @@ public class TaskService : ITaskService
         var task = await _taskRepository.GetWithAccessDataAsync(id)
             ?? throw new NotFoundException("Task not found.");
         EnsureAccess(task.BoardColumn.Board.Project, userId);
+        EnsureAssigneeValid(task.BoardColumn.Board.Project, request.AssigneeId);
 
         task.Title = request.Title;
         task.Description = request.Description;
@@ -102,6 +124,9 @@ public class TaskService : ITaskService
         var targetColumn = await _columnRepository.GetWithAccessDataAsync(request.TargetColumnId)
             ?? throw new NotFoundException("Target column not found.");
         EnsureAccess(targetColumn.Board.Project, userId);
+
+        if (targetColumn.BoardId != task.BoardColumn.BoardId)
+            throw new ForbiddenException("Tasks can only be moved within the same board.");
 
         var sourceColumnId = task.BoardColumnId;
         bool sameColumn = sourceColumnId == request.TargetColumnId;

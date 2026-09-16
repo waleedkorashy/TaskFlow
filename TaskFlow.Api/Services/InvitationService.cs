@@ -46,6 +46,10 @@ public class InvitationService : IInvitationService
             throw new ForbiddenException("Only the project owner can invite members.");
 
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var role = string.IsNullOrWhiteSpace(request.Role) ? "Member" : request.Role;
+
+        if (role is not ("Member" or "Admin"))
+            throw new ForbiddenException("Role must be either 'Member' or 'Admin'.");
 
         if (project.Members.Any(m => m.User != null && m.User.Email!.ToLower() == normalizedEmail))
             throw new ConflictException("This person is already a member of the project.");
@@ -65,7 +69,7 @@ public class InvitationService : IInvitationService
             Id = Guid.NewGuid(),
             ProjectId = projectId,
             Email = normalizedEmail,
-            Role = string.IsNullOrWhiteSpace(request.Role) ? "Member" : request.Role,
+            Role = role,
             Token = GenerateToken(),
             Status = "Pending",
             InvitedByUserId = inviterId,

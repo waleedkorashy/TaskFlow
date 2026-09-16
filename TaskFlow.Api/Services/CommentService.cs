@@ -27,6 +27,13 @@ public class CommentService : ICommentService
         if (!hasAccess) throw new ForbiddenException("You do not have access to this project.");
     }
 
+    private static void EnsureCurrentMembership(Comment comment, Guid userId)
+    {
+        var project = comment.TaskItem.BoardColumn.Board.Project;
+        bool isMember = project.OwnerId == userId || project.Members.Any(m => m.UserId == userId);
+        if (!isMember) throw new ForbiddenException("You no longer have access to this project.");
+    }
+
     public async Task<List<CommentResponse>> GetCommentsAsync(Guid taskId, Guid userId)
     {
         var task = await _taskRepository.GetWithAccessDataAsync(taskId)
@@ -67,6 +74,8 @@ public class CommentService : ICommentService
         if (comment.UserId != userId)
             throw new ForbiddenException("You can only edit your own comments.");
 
+        EnsureCurrentMembership(comment, userId);
+
         comment.Content = request.Content;
         await _commentRepository.SaveChangesAsync();
 
@@ -75,11 +84,13 @@ public class CommentService : ICommentService
 
     public async Task DeleteCommentAsync(Guid id, Guid userId)
     {
-        var comment = await _commentRepository.GetByIdAsync(id)
+        var comment = await _commentRepository.GetWithUserAsync(id)
             ?? throw new NotFoundException("Comment not found.");
 
         if (comment.UserId != userId)
             throw new ForbiddenException("You can only delete your own comments.");
+
+        EnsureCurrentMembership(comment, userId);
 
         _commentRepository.Remove(comment);
         await _commentRepository.SaveChangesAsync();

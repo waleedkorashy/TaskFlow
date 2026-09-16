@@ -1,3 +1,5 @@
-﻿namespace TaskFlow.Api.DTOs.Boards;
+﻿using System.ComponentModel.DataAnnotations;
 
-public record ReorderColumnsRequest(List<Guid> OrderedColumnIds);
+namespace TaskFlow.Api.DTOs.Boards;
+
+public record ReorderColumnsRequest([Required, MinLength(1)] List<Guid> OrderedColumnIds);

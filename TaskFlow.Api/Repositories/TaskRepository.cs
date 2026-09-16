@@ -21,6 +21,8 @@ public class TaskRepository : GenericRepository<TaskItem>, ITaskRepository
     {
         return await DbSet
             .Include(t => t.Assignee)
+            .Include(t => t.Labels)
+            .Include(t => t.BoardColumn).ThenInclude(c => c.Board)
             .Where(t => t.BoardColumnId == columnId)
             .OrderBy(t => t.SortOrder)
             .ToListAsync();

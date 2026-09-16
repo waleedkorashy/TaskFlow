@@ -9,6 +9,12 @@ taskflow-client/node_modules/
 taskflow-client/dist/
 taskflow-client/.angular/
 
+# Publish output
+artifacts/
+
+# Web Deploy profiles (site-specific; credentials live in *.pubxml.user)
+TaskFlow.Api/Properties/PublishProfiles/site90148-WebDeploy*.pubxml
+
 # OS/editor
 .vs/
 .vscode/

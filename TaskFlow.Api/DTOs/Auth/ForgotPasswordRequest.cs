@@ -1,3 +1,5 @@
-﻿namespace TaskFlow.Api.DTOs.Auth;
+﻿using System.ComponentModel.DataAnnotations;
 
-public record ForgotPasswordRequest(string Email);
+namespace TaskFlow.Api.DTOs.Auth;
+
+public record ForgotPasswordRequest([Required, EmailAddress, StringLength(256)] string Email);

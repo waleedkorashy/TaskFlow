@@ -6,4 +6,5 @@ public interface IBoardRepository : IGenericRepository<Board>
 {
     Task<List<Board>> GetByProjectIdAsync(Guid projectId);
     Task<Board?> GetWithDetailsAsync(Guid id);
+    Task<bool> HasAccessAsync(Guid boardId, Guid userId);
 }

@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -11,38 +13,42 @@ using TaskFlow.Api.Entities;
 using TaskFlow.Api.Hubs;
 using TaskFlow.Api.Repositories;
 using TaskFlow.Api.Services;
-using Microsoft.AspNetCore.HttpOverrides;
-
-
 
 var builder = WebApplication.CreateBuilder(args);
-var frontendBaseUrl = builder.Configuration["Frontend:BaseUrl"] ?? "http://localhost:4200"; 
+var frontendBaseUrl = builder.Configuration["Frontend:BaseUrl"] ?? "http://localhost:4200";
 
 builder.Services.AddControllers();
+
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var message = context.ModelState.Values
+            .SelectMany(v => v.Errors)
+            .Select(e => e.ErrorMessage)
+            .FirstOrDefault() ?? "Invalid request.";
+
+        return new BadRequestObjectResult(new { message });
+    };
+});
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, context, cancellationToken) =>
     {
-        document.Components ??= new();
-        document.Components.SecuritySchemes.Add("Bearer", new()
+        document.Components ??= new OpenApiComponents();
+        document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+        document.Components.SecuritySchemes.Add("Bearer", new OpenApiSecurityScheme
         {
-            Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+            Type = SecuritySchemeType.Http,
             Scheme = "bearer",
             BearerFormat = "JWT",
-            In = Microsoft.OpenApi.Models.ParameterLocation.Header,
             Description = "Enter your JWT token"
         });
 
-        document.SecurityRequirements.Add(new()
+        document.Security ??= new List<OpenApiSecurityRequirement>();
+        document.Security.Add(new OpenApiSecurityRequirement
         {
-            [new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                {
-                    Id = "Bearer",
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme
-                }
-            }] = Array.Empty<string>()
+            [new OpenApiSecuritySchemeReference("Bearer", document, null)] = new List<string>()
         });
 
         return Task.CompletedTask;
@@ -54,11 +60,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
     {
-        options.Password.RequiredLength = 6;
-        options.Password.RequireDigit = false;
+        options.Password.RequiredLength = 8;
+        options.Password.RequireDigit = true;
         options.Password.RequireNonAlphanumeric = false;
-        options.Password.RequireUppercase = false;
-        options.Password.RequireLowercase = false;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireLowercase = true;
+        options.Lockout.AllowedForNewUsers = true;
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
     })
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
@@ -120,11 +129,14 @@ builder.Services.AddScoped<IBoardNotifier, SignalRBoardNotifier>();
 builder.Services.AddScoped<IInvitationRepository, InvitationRepository>();
 builder.Services.AddScoped<IInvitationService, InvitationService>();
 
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? new[] { frontendBaseUrl, "http://localhost:4200" };
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.WithOrigins(frontendBaseUrl, "http://localhost:4200")
+        policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -164,6 +176,17 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+    if (builder.Configuration.GetValue<bool>("ForwardedHeaders:TrustAllProxies"))
+    {
+        options.KnownProxies.Clear();
+        options.KnownIPNetworks.Clear();
+    }
+});
+
 var app = builder.Build();
 
 app.UseMiddleware<TaskFlow.Api.Common.Middleware.ExceptionMiddleware>();
@@ -174,12 +197,10 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-app.UseForwardedHeaders(new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
+app.UseForwardedHeaders();
 
-if (app.Environment.IsDevelopment())
+var forceHttps = app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("ForceHttpsRedirect");
+if (forceHttps)
 {
     app.UseHttpsRedirection();
 }

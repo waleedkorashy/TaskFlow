@@ -79,6 +79,12 @@ public class ColumnService : IColumnService
 
         EnsureAccess(board.Project, userId);
 
+        var boardColumnIds = board.BoardColumns.Select(c => c.Id).OrderBy(id => id).ToList();
+        var submittedIds = request.OrderedColumnIds.Distinct().OrderBy(id => id).ToList();
+
+        if (!boardColumnIds.SequenceEqual(submittedIds))
+            throw new ConflictException("The column order must include every column of the board exactly once.");
+
         for (int i = 0; i < request.OrderedColumnIds.Count; i++)
         {
             var column = board.BoardColumns.FirstOrDefault(c => c.Id == request.OrderedColumnIds[i]);
